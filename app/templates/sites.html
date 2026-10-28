@@ -6,7 +6,7 @@
 {% block header_actions %}
 <button class="btn btn-outline btn-sm" onclick="openDnsModal('')" title="Instruções gerais de apontamento DNS">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
-    Como Apontar DNS
+    Instruções de DNS
 </button>
 <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-site')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -15,7 +15,7 @@
 {% endblock %}
 
 {% block content %}
-<!-- DNS Quick Banner -->
+<!-- DNS Quick Banner (100% Cloudflare Tunnel - No Residential IP) -->
 <div class="bento-card" style="margin-bottom: 24px; padding: 18px 24px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border-left: 4px solid var(--color-primary);">
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
         <div style="display: flex; align-items: center; gap: 14px;">
@@ -23,15 +23,20 @@
                 <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
             </div>
             <div>
-                <h4 style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Para onde apontar seus domínios?</h4>
+                <h4 style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Como apontar qualquer domínio para esta TV Box:</h4>
                 <p style="font-size: 13px; color: var(--color-text-muted);">
-                    Crie um <strong>CNAME</strong> apontando para <code style="color: var(--color-primary); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">{{ tunnel_cname }}</code> (Recomendado) ou um <strong>Registro A</strong> para o IP <code style="color: var(--color-accent); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">{{ public_ip }}</code>.
+                    Crie um registro <strong>CNAME</strong> apontando para: <code style="color: var(--color-primary); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">{{ tunnel_cname }}</code>
                 </p>
             </div>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="openDnsModal('')">
-            Ver Tabela de Registros
-        </button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="btn btn-outline btn-sm" onclick="copyText('{{ tunnel_cname }}', 'CNAME copiado para a área de transferência!')">
+                Copiar CNAME
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openDnsModal('')">
+                Ver Guia de Configuração
+            </button>
+        </div>
     </div>
 </div>
 
@@ -120,7 +125,7 @@
     </table>
 </div>
 
-<!-- Modal: Instruções de DNS -->
+<!-- Modal: Instruções de DNS (Cloudflare Tunnel CNAME) -->
 <div id="modal-dns" class="modal-overlay">
     <div class="modal-card" style="max-width: 620px;">
         <div class="modal-header">
@@ -129,23 +134,27 @@
         </div>
         <div class="modal-body">
             <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 18px;">
-                Para que o seu domínio responda neste servidor, acesse a zona DNS do seu provedor (Cloudflare, Registro.br, GoDaddy, Hostinger, etc.) e adicione um dos registros abaixo:
+                Para que o seu domínio funcione neste mini servidor, acesse o painel onde você gerencia o DNS (Cloudflare, Registro.br, Hostinger, GoDaddy, etc.) e adicione o seguinte registro <strong>CNAME</strong>:
             </p>
 
-            <!-- Option 1: CNAME -->
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <strong style="color: #FFFFFF; font-size: 13px;">Opção 1: Cloudflare Tunnel (Recomendado)</strong>
-                    <span class="badge badge-success">Sem abrir portas + SSL Grátis</span>
+            <!-- CNAME Details Card -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); border-radius: var(--radius-sm); padding: 18px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="badge badge-success">Registro CNAME Seguro</span>
+                        <strong style="color: #FFFFFF; font-size: 13px;">Túnel Cloudflare</strong>
+                    </div>
+                    <span style="font-size: 11px; color: var(--color-text-subtle);">Independe de IP Fixo</span>
                 </div>
-                <div style="display: grid; grid-template-columns: 80px 100px 1fr 60px; gap: 8px; font-size: 12px; align-items: center; font-family: var(--font-mono);">
-                    <div style="color: var(--color-text-subtle);">Tipo:</div>
-                    <div style="color: var(--color-text-subtle);">Nome / Host:</div>
-                    <div style="color: var(--color-text-subtle);">Destino / Valor:</div>
+
+                <div style="display: grid; grid-template-columns: 90px 110px 1fr 65px; gap: 8px; font-size: 12px; align-items: center; font-family: var(--font-mono);">
+                    <div style="color: var(--color-text-subtle); text-transform: uppercase;">Tipo:</div>
+                    <div style="color: var(--color-text-subtle); text-transform: uppercase;">Nome / Host:</div>
+                    <div style="color: var(--color-text-subtle); text-transform: uppercase;">Destino / Valor:</div>
                     <div></div>
 
-                    <div><strong style="color: #FFFFFF;">CNAME</strong></div>
-                    <div id="dns-cname-host">@</div>
+                    <div><strong style="color: #FFFFFF; font-size: 13px;">CNAME</strong></div>
+                    <div id="dns-cname-host" style="color: #FFFFFF; font-weight: 600;">@</div>
                     <div style="color: var(--color-primary); word-break: break-all;" id="dns-cname-val">{{ tunnel_cname }}</div>
                     <div>
                         <button class="btn btn-outline btn-sm" onclick="copyText('{{ tunnel_cname }}', 'CNAME copiado!')" style="padding: 4px 8px; font-size: 11px;">
@@ -155,31 +164,21 @@
                 </div>
             </div>
 
-            <!-- Option 2: Registro A -->
-            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--color-border); border-left: 4px solid var(--color-accent); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <strong style="color: #FFFFFF; font-size: 13px;">Opção 2: Apontamento Direto por IP Público</strong>
-                    <span class="badge badge-neutral">Requer portas 80/443 abertas</span>
+            <!-- Explanatory Box on Why CNAME is superior for home TV box -->
+            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 14px; font-size: 12px; color: var(--color-text-muted); line-height: 1.6; margin-bottom: 16px;">
+                <div style="color: #FFFFFF; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--color-accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                    Por que usar este CNAME em vez de IP?
                 </div>
-                <div style="display: grid; grid-template-columns: 80px 100px 1fr 60px; gap: 8px; font-size: 12px; align-items: center; font-family: var(--font-mono);">
-                    <div style="color: var(--color-text-subtle);">Tipo:</div>
-                    <div style="color: var(--color-text-subtle);">Nome / Host:</div>
-                    <div style="color: var(--color-text-subtle);">Destino / IP:</div>
-                    <div></div>
-
-                    <div><strong style="color: #FFFFFF;">A</strong></div>
-                    <div id="dns-a-host">@</div>
-                    <div style="color: var(--color-accent); word-break: break-all;" id="dns-a-val">{{ public_ip }}</div>
-                    <div>
-                        <button class="btn btn-outline btn-sm" onclick="copyText('{{ public_ip }}', 'IP copiado!')" style="padding: 4px 8px; font-size: 11px;">
-                            Copiar
-                        </button>
-                    </div>
-                </div>
+                <ul style="padding-left: 18px; margin: 0; display: flex; flex-direction: column; gap: 4px;">
+                    <li><strong>Seu IP de internet pode mudar:</strong> Como a TV Box está em rede residencial, o CNAME conecta diretamente pelo túnel da Cloudflare. Se sua internet cair ou o IP mudar, o site <em>não sai do ar</em>.</li>
+                    <li><strong>Sem abrir portas:</strong> Você não precisa mexer no roteador nem configurar DMZ ou liberação de portas 80/443.</li>
+                    <li><strong>SSL Grátis:</strong> A Cloudflare gera e renova o certificado HTTPS automaticamente.</li>
+                </ul>
             </div>
 
             <!-- DNS Real-time verification tool -->
-            <div id="dns-check-section" style="margin-top: 18px; border-top: 1px solid var(--color-border); padding-top: 16px;">
+            <div id="dns-check-section" style="border-top: 1px solid var(--color-border); padding-top: 16px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span style="font-size: 13px; font-weight: 600; color: #FFFFFF;">Testar Resolução de DNS:</span>
                     <button type="button" class="btn btn-outline btn-sm" id="btn-check-dns" onclick="checkDomainDns()">
@@ -235,7 +234,7 @@
                     <div style="display: flex; align-items: flex-start; gap: 8px;">
                         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--color-primary); flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                         <span style="font-size: 12px; color: var(--color-text-muted); line-height: 1.5;">
-                            <strong>Lembrete de DNS:</strong> Para este site abrir na internet, basta apontar seu <code>CNAME</code> para <strong style="color: #FFFFFF;">{{ tunnel_cname }}</strong>.
+                            <strong>Apontamento:</strong> Crie um registro <code>CNAME</code> no seu DNS apontando para <strong style="color: #FFFFFF;">{{ tunnel_cname }}</strong>.
                         </span>
                     </div>
                 </div>
@@ -293,7 +292,6 @@ function openDnsModal(domain) {
     currentDnsDomain = domain || "";
     const title = document.getElementById("dns-modal-title");
     const cnameHost = document.getElementById("dns-cname-host");
-    const aHost = document.getElementById("dns-a-host");
     const checkSection = document.getElementById("dns-check-section");
     const resultBox = document.getElementById("dns-check-result");
 
@@ -303,17 +301,14 @@ function openDnsModal(domain) {
     }
 
     if (domain) {
-        title.innerText = `Apontamento de DNS para: ${domain}`;
+        title.innerText = `Apontamento de DNS: ${domain}`;
         const parts = domain.split(".");
-        // If it's a subdomain like demo.zipdigital.site, show 'demo' as host
         const hostName = parts.length > 2 ? parts[0] : "@";
         cnameHost.innerText = hostName;
-        aHost.innerText = hostName;
         if (checkSection) checkSection.style.display = "block";
     } else {
-        title.innerText = "Instruções Globais de DNS";
+        title.innerText = "Como Apontar seus Domínios";
         cnameHost.innerText = "@ (ou subdomínio)";
-        aHost.innerText = "@ (ou subdomínio)";
         if (checkSection) checkSection.style.display = "none";
     }
 
@@ -338,13 +333,10 @@ async function checkDomainDns() {
         if (data.success) {
             if (data.is_cloudflare) {
                 resultBox.className = "alert alert-success";
-                resultBox.innerHTML = `✅ <strong>Perfeito!</strong> O domínio <code>${data.domain}</code> já está apontando via Cloudflare (IPs: ${data.ips.join(', ')}).`;
-            } else if (data.is_direct) {
-                resultBox.className = "alert alert-success";
-                resultBox.innerHTML = `✅ <strong>Conectado!</strong> O domínio <code>${data.domain}</code> está apontando diretamente para o IP do seu servidor (${data.ips.join(', ')}).`;
+                resultBox.innerHTML = `✅ <strong>Perfeito!</strong> O domínio <code>${data.domain}</code> já está apontado com sucesso para o túnel da Cloudflare.`;
             } else {
                 resultBox.className = "alert alert-warning";
-                resultBox.innerHTML = `⚠️ <strong>Em propagação:</strong> O domínio responde nos IPs: <code>${data.ips.join(', ')}</code>. Se você acabou de alterar, aguarde alguns minutos pela propagação.`;
+                resultBox.innerHTML = `⚠️ <strong>Em propagação ou incorreto:</strong> O domínio responde nos IPs: <code>${data.ips.join(', ')}</code>. Se você acabou de criar o CNAME, aguarde alguns minutos para propagar.`;
             }
         } else {
             resultBox.className = "alert alert-danger";
