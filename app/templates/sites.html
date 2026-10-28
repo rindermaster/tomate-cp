@@ -4,6 +4,10 @@
 {% block header_title %}Sites & Domínios{% endblock %}
 
 {% block header_actions %}
+<button class="btn btn-outline btn-sm" onclick="openDnsModal('')" title="Instruções gerais de apontamento DNS">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
+    Como Apontar DNS
+</button>
 <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-site')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     Criar Novo Site
@@ -11,6 +15,26 @@
 {% endblock %}
 
 {% block content %}
+<!-- DNS Quick Banner -->
+<div class="bento-card" style="margin-bottom: 24px; padding: 18px 24px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border-left: 4px solid var(--color-primary);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 40px; height: 40px; border-radius: var(--radius-sm); background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; color: var(--color-primary); flex-shrink: 0;">
+                <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
+            </div>
+            <div>
+                <h4 style="font-size: 14px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Para onde apontar seus domínios?</h4>
+                <p style="font-size: 13px; color: var(--color-text-muted);">
+                    Crie um <strong>CNAME</strong> apontando para <code style="color: var(--color-primary); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">{{ tunnel_cname }}</code> (Recomendado) ou um <strong>Registro A</strong> para o IP <code style="color: var(--color-accent); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono);">{{ public_ip }}</code>.
+                </p>
+            </div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="openDnsModal('')">
+            Ver Tabela de Registros
+        </button>
+    </div>
+</div>
+
 <div class="table-container">
     <table>
         <thead>
@@ -68,6 +92,10 @@
                 </td>
                 <td style="text-align: right;">
                     <div style="display: inline-flex; align-items: center; gap: 8px;">
+                        <button class="btn btn-outline btn-sm" onclick="openDnsModal('{{ site.domain }}')" title="Ver como apontar o DNS deste domínio">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
+                            DNS
+                        </button>
                         <a href="/deploy?site={{ site.domain }}" class="btn btn-outline btn-sm" title="Enviar arquivos ZIP">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 16 4-4 4 4"/></svg>
                             Deploy
@@ -92,6 +120,81 @@
     </table>
 </div>
 
+<!-- Modal: Instruções de DNS -->
+<div id="modal-dns" class="modal-overlay">
+    <div class="modal-card" style="max-width: 620px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="dns-modal-title">Apontamento de DNS</h3>
+            <button class="modal-close" onclick="closeModal('modal-dns')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size: 13px; color: var(--color-text-muted); margin-bottom: 18px;">
+                Para que o seu domínio responda neste servidor, acesse a zona DNS do seu provedor (Cloudflare, Registro.br, GoDaddy, Hostinger, etc.) e adicione um dos registros abaixo:
+            </p>
+
+            <!-- Option 1: CNAME -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <strong style="color: #FFFFFF; font-size: 13px;">Opção 1: Cloudflare Tunnel (Recomendado)</strong>
+                    <span class="badge badge-success">Sem abrir portas + SSL Grátis</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 80px 100px 1fr 60px; gap: 8px; font-size: 12px; align-items: center; font-family: var(--font-mono);">
+                    <div style="color: var(--color-text-subtle);">Tipo:</div>
+                    <div style="color: var(--color-text-subtle);">Nome / Host:</div>
+                    <div style="color: var(--color-text-subtle);">Destino / Valor:</div>
+                    <div></div>
+
+                    <div><strong style="color: #FFFFFF;">CNAME</strong></div>
+                    <div id="dns-cname-host">@</div>
+                    <div style="color: var(--color-primary); word-break: break-all;" id="dns-cname-val">{{ tunnel_cname }}</div>
+                    <div>
+                        <button class="btn btn-outline btn-sm" onclick="copyText('{{ tunnel_cname }}', 'CNAME copiado!')" style="padding: 4px 8px; font-size: 11px;">
+                            Copiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Option 2: Registro A -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--color-border); border-left: 4px solid var(--color-accent); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <strong style="color: #FFFFFF; font-size: 13px;">Opção 2: Apontamento Direto por IP Público</strong>
+                    <span class="badge badge-neutral">Requer portas 80/443 abertas</span>
+                </div>
+                <div style="display: grid; grid-template-columns: 80px 100px 1fr 60px; gap: 8px; font-size: 12px; align-items: center; font-family: var(--font-mono);">
+                    <div style="color: var(--color-text-subtle);">Tipo:</div>
+                    <div style="color: var(--color-text-subtle);">Nome / Host:</div>
+                    <div style="color: var(--color-text-subtle);">Destino / IP:</div>
+                    <div></div>
+
+                    <div><strong style="color: #FFFFFF;">A</strong></div>
+                    <div id="dns-a-host">@</div>
+                    <div style="color: var(--color-accent); word-break: break-all;" id="dns-a-val">{{ public_ip }}</div>
+                    <div>
+                        <button class="btn btn-outline btn-sm" onclick="copyText('{{ public_ip }}', 'IP copiado!')" style="padding: 4px 8px; font-size: 11px;">
+                            Copiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DNS Real-time verification tool -->
+            <div id="dns-check-section" style="margin-top: 18px; border-top: 1px solid var(--color-border); padding-top: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span style="font-size: 13px; font-weight: 600; color: #FFFFFF;">Testar Resolução de DNS:</span>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-check-dns" onclick="checkDomainDns()">
+                        🔍 Verificar Apontamento Agora
+                    </button>
+                </div>
+                <div id="dns-check-result" style="margin-top: 10px; font-size: 12px; display: none;"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="closeModal('modal-dns')">Entendi</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Criar Novo Site -->
 <div id="modal-create-site" class="modal-overlay">
     <div class="modal-card">
@@ -104,7 +207,7 @@
                 <div class="form-group">
                     <label class="form-label" for="domain">Nome do Domínio</label>
                     <input type="text" id="domain" name="domain" class="form-control" placeholder="ex: cliente.zipdigital.site ou meusite.com" required>
-                    <div class="form-hint">O Nginx responderá a requisições com este cabeçalho Host.</div>
+                    <div class="form-hint">Você pode digitar o domínio ou subdomínio (o Nginx responderá a este Host).</div>
                 </div>
 
                 <div class="form-group">
@@ -118,13 +221,23 @@
 
                 <div id="group-proxy-target" class="form-group" style="display: none;">
                     <label class="form-label" for="proxy_target">Endereço de Destino (Proxy Pass)</label>
-                    <input type="text" id="proxy_target" name="proxy_target" class="form-control" placeholder="http://127.0.0.1:3000">
+                    <input type="text" id="proxy_target" name="proxy_target" class="form-control" placeholder="http://127.0.0.1:3000 ou 3000">
                     <div class="form-hint">Porta ou serviço local onde a aplicação está rodando.</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="port">Porta de Escuta Nginx</label>
                     <input type="number" id="port" name="port" class="form-control" value="80" required>
+                    <div class="form-hint">Padrão: 80 (gerenciado com HTTPS através do túnel).</div>
+                </div>
+
+                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-sm); padding: 12px; margin-top: 16px;">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--color-primary); flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <span style="font-size: 12px; color: var(--color-text-muted); line-height: 1.5;">
+                            <strong>Lembrete de DNS:</strong> Para este site abrir na internet, basta apontar seu <code>CNAME</code> para <strong style="color: #FFFFFF;">{{ tunnel_cname }}</strong>.
+                        </span>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -164,6 +277,8 @@
 
 {% block scripts %}
 <script>
+let currentDnsDomain = "";
+
 function toggleProxyFields() {
     const type = document.getElementById("site_type").value;
     const proxyGroup = document.getElementById("group-proxy-target");
@@ -172,6 +287,84 @@ function toggleProxyFields() {
     } else {
         proxyGroup.style.display = "none";
     }
+}
+
+function openDnsModal(domain) {
+    currentDnsDomain = domain || "";
+    const title = document.getElementById("dns-modal-title");
+    const cnameHost = document.getElementById("dns-cname-host");
+    const aHost = document.getElementById("dns-a-host");
+    const checkSection = document.getElementById("dns-check-section");
+    const resultBox = document.getElementById("dns-check-result");
+
+    if (resultBox) {
+        resultBox.style.display = "none";
+        resultBox.innerText = "";
+    }
+
+    if (domain) {
+        title.innerText = `Apontamento de DNS para: ${domain}`;
+        const parts = domain.split(".");
+        // If it's a subdomain like demo.zipdigital.site, show 'demo' as host
+        const hostName = parts.length > 2 ? parts[0] : "@";
+        cnameHost.innerText = hostName;
+        aHost.innerText = hostName;
+        if (checkSection) checkSection.style.display = "block";
+    } else {
+        title.innerText = "Instruções Globais de DNS";
+        cnameHost.innerText = "@ (ou subdomínio)";
+        aHost.innerText = "@ (ou subdomínio)";
+        if (checkSection) checkSection.style.display = "none";
+    }
+
+    openModal("modal-dns");
+}
+
+async function checkDomainDns() {
+    if (!currentDnsDomain) return;
+    const btn = document.getElementById("btn-check-dns");
+    const resultBox = document.getElementById("dns-check-result");
+
+    btn.disabled = true;
+    btn.innerText = "Consultando DNS...";
+    resultBox.style.display = "block";
+    resultBox.className = "alert alert-neutral";
+    resultBox.innerText = `Consultando DNS mundial para ${currentDnsDomain}...`;
+
+    try {
+        const res = await fetch(`/api/sites/check-dns?domain=${encodeURIComponent(currentDnsDomain)}`);
+        const data = await res.json();
+
+        if (data.success) {
+            if (data.is_cloudflare) {
+                resultBox.className = "alert alert-success";
+                resultBox.innerHTML = `✅ <strong>Perfeito!</strong> O domínio <code>${data.domain}</code> já está apontando via Cloudflare (IPs: ${data.ips.join(', ')}).`;
+            } else if (data.is_direct) {
+                resultBox.className = "alert alert-success";
+                resultBox.innerHTML = `✅ <strong>Conectado!</strong> O domínio <code>${data.domain}</code> está apontando diretamente para o IP do seu servidor (${data.ips.join(', ')}).`;
+            } else {
+                resultBox.className = "alert alert-warning";
+                resultBox.innerHTML = `⚠️ <strong>Em propagação:</strong> O domínio responde nos IPs: <code>${data.ips.join(', ')}</code>. Se você acabou de alterar, aguarde alguns minutos pela propagação.`;
+            }
+        } else {
+            resultBox.className = "alert alert-danger";
+            resultBox.innerHTML = `❌ <strong>Não encontrado:</strong> ${data.error}`;
+        }
+    } catch (e) {
+        resultBox.className = "alert alert-danger";
+        resultBox.innerText = "Erro ao consultar resolução de DNS.";
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "🔍 Verificar Apontamento Agora";
+    }
+}
+
+function copyText(val, successMsg) {
+    navigator.clipboard.writeText(val).then(() => {
+        showToast(successMsg, "success");
+    }).catch(() => {
+        showToast("Não foi possível copiar.", "danger");
+    });
 }
 
 function confirmDeleteSite(domain) {

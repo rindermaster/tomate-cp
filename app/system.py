@@ -300,6 +300,36 @@ def get_full_telemetry() -> Dict[str, Any]:
         "disk": disk,
         "uptime": get_uptime_str(),
         "local_ip": get_local_ip(),
+        "public_ip": get_public_ip(),
         "os_info": os_info,
         "nginx_active": is_nginx_active(),
     }
+
+
+_last_public_ip = None
+_last_public_ip_time = 0.0
+
+def get_public_ip() -> str:
+    """
+    Detects the public egress IP of the server, cached for 1 hour.
+    """
+    global _last_public_ip, _last_public_ip_time
+    now = time.time()
+    if _last_public_ip and (now - _last_public_ip_time) < 3600:
+        return _last_public_ip
+
+    try:
+        proc = subprocess.run(
+            ["curl", "-s", "--max-time", "2", "https://api.ipify.org"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        ip = proc.stdout.strip()
+        if ip and len(ip.split(".")) == 4:
+            _last_public_ip = ip
+            _last_public_ip_time = now
+            return ip
+    except Exception:
+        pass
+    return _last_public_ip or "127.0.0.1"

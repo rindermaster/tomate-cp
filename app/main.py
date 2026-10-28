@@ -84,6 +84,9 @@ def get_template_context(request: Request, extra: dict = None) -> dict:
         "company_name": config.get("company_name", "ZipDigital"),
         "accent_color": config.get("accent_color", "#EF4444"),
         "logged_user": get_current_user_optional(request, config),
+        "public_ip": get_full_telemetry().get("public_ip", "127.0.0.1"),
+        "local_ip": get_full_telemetry().get("local_ip", "127.0.0.1"),
+        "tunnel_cname": config.get("tunnel_cname", "ce28d5bc-f161-4c93-adcf-c6c6c44b4991.cfargotunnel.com"),
     }
     if extra:
         ctx.update(extra)
@@ -255,6 +258,42 @@ async def api_delete_site(
     return RedirectResponse(url=f"/sites?err={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
 
 
+
+import socket
+
+@app.get("/api/sites/check-dns")
+async def api_check_dns(domain: str):
+    domain = domain.strip().lower()
+    if domain.startswith("http://"): domain = domain[7:]
+    if domain.startswith("https://"): domain = domain[8:]
+    domain = domain.split("/")[0]
+
+    telemetry = get_full_telemetry()
+    server_public_ip = telemetry.get("public_ip", "")
+
+    try:
+        results = socket.getaddrinfo(domain, 80)
+        ips = list(set([r[4][0] for r in results]))
+        is_cf = any(ip.startswith("104.") or ip.startswith("172.67.") or ip.startswith("2606:4700:") for ip in ips)
+        is_direct = (server_public_ip in ips) if server_public_ip else False
+        
+        status_msg = "Apontado com Sucesso via Cloudflare!" if is_cf else ("Apontado diretamente para o IP da TV Box!" if is_direct else f"Apontando para {', '.join(ips)}")
+        return {
+            "success": True,
+            "domain": domain,
+            "ips": ips,
+            "is_cloudflare": is_cf,
+            "is_direct": is_direct,
+            "status_msg": status_msg
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "domain": domain,
+            "error": "Domínio ainda não propaga ou não possui registro DNS.",
+            "ips": []
+        }
+
 @app.post("/api/sites/upload-zip")
 async def api_upload_zip(
     request: Request,
@@ -312,6 +351,7 @@ async def api_settings_update(
     brand_name: str = Form(...),
     company_name: str = Form(...),
     accent_color: str = Form(...),
+    tunnel_cname: Optional[str] = Form(None),
     new_password: Optional[str] = Form(None)
 ):
     require_auth(request, config)
@@ -319,6 +359,8 @@ async def api_settings_update(
     config["brand_name"] = brand_name.strip()
     config["company_name"] = company_name.strip()
     config["accent_color"] = accent_color.strip()
+    if tunnel_cname:
+        config["tunnel_cname"] = tunnel_cname.strip()
 
     if new_password and new_password.strip():
         config["admin_password"] = new_password.strip()

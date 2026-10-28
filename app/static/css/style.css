@@ -559,7 +559,7 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-overlay.active {
-  display: flex;
+  display: flex !important;
 }
 
 .modal-card {

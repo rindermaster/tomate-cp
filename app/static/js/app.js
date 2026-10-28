@@ -20,6 +20,15 @@ document.addEventListener("DOMContentLoaded", () => {
             closeAllModals();
         }
     });
+
+    // Close on overlay backdrop click
+    document.querySelectorAll(".modal-overlay").forEach(overlay => {
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove("active");
+            }
+        });
+    });
 });
 
 /**
