@@ -1,0 +1,846 @@
+{% extends "base.html" %}
+
+{% block title %}Gerenciador de Arquivos & Código — {{ panel_name }}{% endblock %}
+
+{% block content %}
+<!-- CodeMirror Styles -->
+<link rel="stylesheet" href="/static/vendor/codemirror/codemirror.min.css">
+<link rel="stylesheet" href="/static/vendor/codemirror/theme/dracula.min.css">
+
+<div class="file-manager-container">
+    <!-- Page Header & Quick Site Selector -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+        <div>
+            <h1 style="font-size: 24px; font-weight: 700; margin-bottom: 6px;">Gerenciador de Arquivos & Código</h1>
+            <p style="color: var(--color-text-muted); font-size: 14px;">
+                Navegue pelas pastas dos seus sites, crie arquivos e edite código diretamente pelo navegador com consumo zero de memória.
+            </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label style="font-size: 12px; font-weight: 600; color: var(--color-text-muted);">Site:</label>
+            <select id="site-selector" class="form-input" style="width: auto; padding: 6px 12px; font-size: 13px;" onchange="handleSiteSelectChange(this.value)">
+                <option value="/var/www">📁 Raiz Geral (/var/www)</option>
+                {% for site in sites %}
+                <option value="{{ site.root_path }}">{{ site.domain }} ({{ site.root_path }})</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- File Navigation Toolbar -->
+    <div class="file-toolbar">
+        <div class="file-breadcrumbs" id="breadcrumbs-container">
+            <!-- Dynamically populated -->
+            <span class="breadcrumb-item">Carregando...</span>
+        </div>
+
+        <div class="file-actions-group">
+            <button class="btn btn-primary btn-sm" onclick="openNewFileModal()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="12" x2="12" y1="18" y2="12"/><line x1="9" x2="15" y1="15" y2="15"/></svg>
+                Novo Arquivo
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="openNewFolderModal()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><line x1="12" x2="12" y1="10" y2="16"/><line x1="9" x2="15" y1="13" y2="13"/></svg>
+                Nova Pasta
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="openUploadModal()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                Upload
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="reloadCurrentDirectory()" title="Recarregar pasta">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- File Explorer Table -->
+    <div class="file-table-wrapper">
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th style="width: 45%;">Nome</th>
+                    <th style="width: 15%;">Tamanho</th>
+                    <th style="width: 20%;">Modificado</th>
+                    <th style="width: 20%; text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody id="file-list-body">
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: var(--color-text-muted);">
+                        Carregando diretório...
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Code Editor Modal Overlay (Fullscreen Capable)                          -->
+<!-- ======================================================================= -->
+<div id="editor-overlay" class="editor-modal-overlay">
+    <div id="editor-window" class="editor-window">
+        <!-- Topbar -->
+        <div class="editor-topbar">
+            <div class="editor-file-info">
+                <svg width="18" height="18" fill="none" stroke="#EF4444" stroke-width="2" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="editor-filename" class="editor-filename">index.html</span>
+                        <span id="editor-status" class="editor-status-pill saved">● Salvo</span>
+                        <span id="editor-mode-badge" class="badge badge-neutral" style="font-size: 10px;">HTML</span>
+                    </div>
+                    <div id="editor-filepath" class="editor-filepath">/var/www/demo.zipdigital.site/index.html</div>
+                </div>
+            </div>
+
+            <div class="editor-toolbar">
+                <span style="font-size: 11px; color: var(--color-text-subtle); margin-right: 8px;">
+                    <kbd>Ctrl+S</kbd> ou <kbd>Cmd+S</kbd>
+                </span>
+                <button class="btn btn-primary btn-sm" onclick="saveEditorFile()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Salvar
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="toggleFullscreenEditor()" title="Tela Cheia">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                </button>
+                <button class="btn btn-outline btn-sm" onclick="closeEditor()" title="Fechar">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- CodeMirror Editor Container -->
+        <div class="editor-body">
+            <textarea id="code-editor-textarea" style="display: none;"></textarea>
+        </div>
+
+        <!-- Statusbar -->
+        <div class="editor-statusbar">
+            <div class="editor-statusbar-item">
+                <span id="editor-cursor-pos">Linha 1, Coluna 1</span>
+            </div>
+            <div class="editor-statusbar-item" style="gap: 16px;">
+                <span id="editor-size-info">0 KB</span>
+                <span>UTF-8</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Image Preview Modal                                                     -->
+<!-- ======================================================================= -->
+<div id="modal-image-preview" class="modal-overlay">
+    <div class="modal" style="max-width: 800px; text-align: center;">
+        <div class="modal-header">
+            <h3 id="image-preview-title" class="modal-title">Visualizar Imagem</h3>
+            <button class="modal-close" onclick="closeModal('modal-image-preview')">&times;</button>
+        </div>
+        <div style="padding: 20px; max-height: 70vh; overflow: auto; display: flex; align-items: center; justify-content: center;">
+            <img id="image-preview-src" src="" alt="Preview" style="max-width: 100%; max-height: 60vh; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        </div>
+        <div class="modal-actions" style="justify-content: flex-end;">
+            <a id="image-download-btn" href="#" download class="btn btn-outline btn-sm">Baixar Imagem</a>
+            <button class="btn btn-primary btn-sm" onclick="closeModal('modal-image-preview')">Fechar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- New File Modal                                                          -->
+<!-- ======================================================================= -->
+<div id="modal-new-file" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Criar Novo Arquivo</h3>
+            <button class="modal-close" onclick="closeModal('modal-new-file')">&times;</button>
+        </div>
+        <form onsubmit="handleCreateFile(event)">
+            <div class="form-group">
+                <label class="form-label">Nome do Arquivo</label>
+                <input type="text" id="new-file-name" class="form-input" placeholder="ex: index.html, style.css, script.js" required autofocus>
+                <div class="form-hint">O arquivo será criado dentro da pasta atual.</div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-new-file')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Criar Arquivo</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- New Folder Modal                                                        -->
+<!-- ======================================================================= -->
+<div id="modal-new-folder" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Criar Nova Pasta</h3>
+            <button class="modal-close" onclick="closeModal('modal-new-folder')">&times;</button>
+        </div>
+        <form onsubmit="handleCreateFolder(event)">
+            <div class="form-group">
+                <label class="form-label">Nome da Pasta</label>
+                <input type="text" id="new-folder-name" class="form-input" placeholder="ex: css, js, images, api" required autofocus>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-new-folder')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Criar Pasta</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Rename Item Modal                                                       -->
+<!-- ======================================================================= -->
+<div id="modal-rename" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Renomear</h3>
+            <button class="modal-close" onclick="closeModal('modal-rename')">&times;</button>
+        </div>
+        <form onsubmit="handleRenameSubmit(event)">
+            <input type="hidden" id="rename-item-path">
+            <div class="form-group">
+                <label class="form-label">Novo Nome</label>
+                <input type="text" id="rename-item-name" class="form-input" required autofocus>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-rename')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Nome</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Upload Modal                                                            -->
+<!-- ======================================================================= -->
+<div id="modal-upload" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Enviar Arquivo(s)</h3>
+            <button class="modal-close" onclick="closeModal('modal-upload')">&times;</button>
+        </div>
+        <form onsubmit="handleUploadSubmit(event)">
+            <div class="form-group">
+                <label class="form-label">Selecione o arquivo do computador</label>
+                <input type="file" id="upload-file-input" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: var(--color-text);">
+                    <input type="checkbox" id="upload-unzip-check">
+                    Extrair automaticamente se for arquivo <strong>.ZIP</strong>
+                </label>
+                <div class="form-hint">Se marcado, os arquivos do ZIP serão extraídos diretamente nesta pasta.</div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-upload')">Cancelar</button>
+                <button type="submit" id="upload-submit-btn" class="btn btn-primary">Enviar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Delete Item Modal                                                       -->
+<!-- ======================================================================= -->
+<div id="modal-delete" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" style="color: #EF4444;">Confirmar Exclusão</h3>
+            <button class="modal-close" onclick="closeModal('modal-delete')">&times;</button>
+        </div>
+        <div style="padding: 10px 0 20px;">
+            <p style="font-size: 14px; color: var(--color-text); margin-bottom: 8px;">
+                Tem certeza que deseja excluir <strong id="delete-item-name" style="color: #FFFFFF;"></strong>?
+            </p>
+            <p style="font-size: 12px; color: var(--color-danger);">
+                Esta ação é irreversível e removerá o item permanentemente do disco.
+            </p>
+            <input type="hidden" id="delete-item-path">
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-delete')">Cancelar</button>
+            <button type="button" class="btn btn-danger" onclick="executeDeleteItem()">Excluir Definitivamente</button>
+        </div>
+    </div>
+</div>
+
+<!-- CodeMirror Scripts -->
+<script src="/static/vendor/codemirror/codemirror.min.js"></script>
+<script src="/static/vendor/codemirror/mode/xml.min.js"></script>
+<script src="/static/vendor/codemirror/mode/javascript.min.js"></script>
+<script src="/static/vendor/codemirror/mode/css.min.js"></script>
+<script src="/static/vendor/codemirror/mode/htmlmixed.min.js"></script>
+<script src="/static/vendor/codemirror/mode/clike.min.js"></script>
+<script src="/static/vendor/codemirror/mode/php.min.js"></script>
+<script src="/static/vendor/codemirror/mode/python.min.js"></script>
+<script src="/static/vendor/codemirror/mode/nginx.min.js"></script>
+<script src="/static/vendor/codemirror/mode/markdown.min.js"></script>
+
+<!-- File Manager Script -->
+<script>
+    let currentPath = "{{ initial_path }}";
+    let codeMirrorInstance = null;
+    let activeFilePath = null;
+    let isFileDirty = false;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Init CodeMirror
+        const textarea = document.getElementById("code-editor-textarea");
+        codeMirrorInstance = CodeMirror.fromTextArea(textarea, {
+            lineNumbers: true,
+            theme: "dracula",
+            mode: "htmlmixed",
+            tabSize: 4,
+            indentWithTabs: false,
+            lineWrapping: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            extraKeys: {
+                "Ctrl-S": function(cm) { saveEditorFile(); },
+                "Cmd-S": function(cm) { saveEditorFile(); },
+                "Esc": function(cm) { closeEditor(); }
+            }
+        });
+
+        codeMirrorInstance.on("change", () => {
+            if (!isFileDirty) {
+                isFileDirty = true;
+                const statusEl = document.getElementById("editor-status");
+                if (statusEl) {
+                    statusEl.innerText = "● Alterado";
+                    statusEl.className = "editor-status-pill unsaved";
+                }
+            }
+        });
+
+        codeMirrorInstance.on("cursorActivity", () => {
+            const pos = codeMirrorInstance.getCursor();
+            const posEl = document.getElementById("editor-cursor-pos");
+            if (posEl) {
+                posEl.innerText = `Linha ${pos.line + 1}, Coluna ${pos.ch + 1}`;
+            }
+        });
+
+        // Set initial select value if matching
+        const siteSelector = document.getElementById("site-selector");
+        if (siteSelector) {
+            for (let opt of siteSelector.options) {
+                if (opt.value === currentPath) {
+                    siteSelector.value = currentPath;
+                    break;
+                }
+            }
+        }
+
+        loadDirectory(currentPath);
+    });
+
+    /**
+     * Load Directory Items from API
+     */
+    async function loadDirectory(path) {
+        currentPath = path;
+        const tbody = document.getElementById("file-list-body");
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: var(--color-text-muted);">Carregando pasta...</td></tr>`;
+
+        try {
+            const res = await fetch(`/api/files/list?path=${encodeURIComponent(path)}`);
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: #EF4444;">Erro ao carregar diretório: ${data.message || 'Desconhecido'}</td></tr>`;
+                return;
+            }
+
+            renderBreadcrumbs(data.data.breadcrumbs, data.data.current_path);
+            renderItems(data.data.items, data.data.parent_path);
+
+            // Update URL without refresh
+            const newUrl = `${window.location.pathname}?path=${encodeURIComponent(currentPath)}`;
+            window.history.replaceState({ path: currentPath }, "", newUrl);
+
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 40px; color: #EF4444;">Erro de conexão com o servidor.</td></tr>`;
+            console.error(err);
+        }
+    }
+
+    function reloadCurrentDirectory() {
+        loadDirectory(currentPath);
+        showToast("Pasta atualizada.");
+    }
+
+    function handleSiteSelectChange(path) {
+        loadDirectory(path);
+    }
+
+    /**
+     * Render Breadcrumbs Bar
+     */
+    function renderBreadcrumbs(crumbs, fullPath) {
+        const container = document.getElementById("breadcrumbs-container");
+        if (!container) return;
+
+        let html = `
+            <a class="breadcrumb-item" href="javascript:void(0)" onclick="loadDirectory('/var/www')" title="Ir para raiz /var/www">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </a>
+        `;
+
+        crumbs.forEach((c, index) => {
+            const isLast = index === crumbs.length - 1;
+            html += `<span class="breadcrumb-separator">/</span>`;
+            if (isLast) {
+                html += `<span class="breadcrumb-item active" title="${c.path}">${c.name}</span>`;
+            } else {
+                html += `<a class="breadcrumb-item" href="javascript:void(0)" onclick="loadDirectory('${c.path}')" title="${c.path}">${c.name}</a>`;
+            }
+        });
+
+        // Copy path button
+        html += `
+            <button class="btn btn-outline btn-sm" style="padding: 2px 6px; margin-left: 6px; font-size: 11px;" onclick="copyCurrentPath()" title="Copiar caminho completo">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            </button>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    function copyCurrentPath() {
+        navigator.clipboard.writeText(currentPath).then(() => {
+            showToast("Caminho copiado para a área de transferência!");
+        });
+    }
+
+    /**
+     * Render Directory Items
+     */
+    function renderItems(items, parentPath) {
+        const tbody = document.getElementById("file-list-body");
+        if (!tbody) return;
+
+        let html = "";
+
+        // If parent path available, add ".." row
+        if (parentPath) {
+            html += `
+                <tr class="file-row">
+                    <td class="file-name-cell">
+                        <div class="file-icon" style="color: #F59E0B;">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+                        </div>
+                        <a href="javascript:void(0)" onclick="loadDirectory('${parentPath}')" class="file-link" style="color: var(--color-text-muted); font-weight: 600;">
+                            .. (Pasta Anterior)
+                        </a>
+                    </td>
+                    <td class="file-meta-cell">-</td>
+                    <td class="file-meta-cell">-</td>
+                    <td class="file-actions-cell"></td>
+                </tr>
+            `;
+        }
+
+        if (items.length === 0 && !parentPath) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4">
+                        <div class="file-empty-state">
+                            <svg class="file-empty-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
+                            <h3 style="font-size: 16px; font-weight: 600; color: #FFFFFF; margin-bottom: 6px;">Esta pasta está vazia</h3>
+                            <p style="font-size: 13px; margin-bottom: 16px;">Comece criando um arquivo ou fazendo o upload do seu site.</p>
+                            <div style="display: inline-flex; gap: 8px;">
+                                <button class="btn btn-primary btn-sm" onclick="openNewFileModal()">+ Criar Arquivo</button>
+                                <button class="btn btn-outline btn-sm" onclick="openUploadModal()">⬆ Enviar Arquivo</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        items.forEach(item => {
+            const iconSvg = getIconSvg(item);
+            let clickAction = "";
+
+            if (item.is_dir) {
+                clickAction = `onclick="loadDirectory('${escapeJs(item.path)}')"`
+            } else if (item.is_editable) {
+                clickAction = `onclick="openEditor('${escapeJs(item.path)}')"`
+            } else if (item.is_image) {
+                clickAction = `onclick="openImagePreview('${escapeJs(item.path)}', '${escapeJs(item.name)}')"`
+            }
+
+            html += `
+                <tr class="file-row">
+                    <td class="file-name-cell">
+                        <div class="file-icon" style="color: ${item.icon_color};">
+                            ${iconSvg}
+                        </div>
+                        <a href="javascript:void(0)" ${clickAction} class="file-link" title="${item.path}">
+                            ${item.name}
+                        </a>
+                    </td>
+                    <td class="file-meta-cell">${item.size_fmt}</td>
+                    <td class="file-meta-cell">${item.mtime_fmt}</td>
+                    <td class="file-actions-cell">
+                        <div style="display: inline-flex; align-items: center; gap: 6px;">
+                            ${item.is_editable ? `
+                                <button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="openEditor('${escapeJs(item.path)}')" title="Editar código">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                    Editar
+                                </button>
+                            ` : ''}
+
+                            ${item.is_image ? `
+                                <button class="btn btn-outline btn-sm" style="padding: 4px 8px; font-size: 11px;" onclick="openImagePreview('${escapeJs(item.path)}', '${escapeJs(item.name)}')" title="Visualizar imagem">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/></svg>
+                                    Ver
+                                </button>
+                            ` : ''}
+
+                            ${!item.is_dir ? `
+                                <a href="/api/files/download?path=${encodeURIComponent(item.path)}" class="btn btn-outline btn-sm" style="padding: 4px 6px;" title="Baixar arquivo">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                                </a>
+                            ` : ''}
+
+                            <button class="btn btn-outline btn-sm" style="padding: 4px 6px;" onclick="openRenameModal('${escapeJs(item.path)}', '${escapeJs(item.name)}')" title="Renomear">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                            </button>
+
+                            <button class="btn btn-danger btn-sm" style="padding: 4px 6px;" onclick="openDeleteModal('${escapeJs(item.path)}', '${escapeJs(item.name)}')" title="Excluir">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    function getIconSvg(item) {
+        if (item.is_dir) {
+            return `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>`;
+        }
+        if (item.is_image) {
+            return `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`;
+        }
+        if (item.is_editable) {
+            return `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><polyline points="8 13 12 17 16 13"/></svg>`;
+        }
+        if (item.ext === ".zip" || item.ext === ".tar" || item.ext === ".gz") {
+            return `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" x2="12" y1="11" y2="17"/><line x1="9" x2="15" y1="14" y2="14"/></svg>`;
+        }
+        return `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+    }
+
+    function escapeJs(str) {
+        return (str || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+    }
+
+    // =========================================================================
+    // Code Editor Operations
+    // =========================================================================
+
+    async function openEditor(filePath) {
+        activeFilePath = filePath;
+        isFileDirty = false;
+
+        const overlay = document.getElementById("editor-overlay");
+        overlay.classList.add("active");
+
+        const filename = filePath.split("/").pop();
+        document.getElementById("editor-filename").innerText = filename;
+        document.getElementById("editor-filepath").innerText = filePath;
+
+        const statusEl = document.getElementById("editor-status");
+        statusEl.innerText = "● Carregando...";
+        statusEl.className = "editor-status-pill unsaved";
+
+        try {
+            const res = await fetch(`/api/files/read?path=${encodeURIComponent(filePath)}`);
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                alert(`Erro ao abrir arquivo: ${data.message || 'Desconhecido'}`);
+                closeEditor();
+                return;
+            }
+
+            codeMirrorInstance.setValue(data.data.content);
+            codeMirrorInstance.setOption("mode", data.data.mode);
+            document.getElementById("editor-mode-badge").innerText = data.data.mode.toUpperCase();
+            document.getElementById("editor-size-info").innerText = data.data.size_fmt;
+
+            // Set clean state
+            codeMirrorInstance.clearHistory();
+            isFileDirty = false;
+            statusEl.innerText = "● Salvo";
+            statusEl.className = "editor-status-pill saved";
+
+            setTimeout(() => {
+                codeMirrorInstance.refresh();
+                codeMirrorInstance.focus();
+            }, 100);
+
+        } catch (err) {
+            alert("Erro de conexão ao carregar o arquivo.");
+            closeEditor();
+            console.error(err);
+        }
+    }
+
+    async function saveEditorFile() {
+        if (!activeFilePath) return;
+
+        const content = codeMirrorInstance.getValue();
+        const statusEl = document.getElementById("editor-status");
+        statusEl.innerText = "● Salvando...";
+
+        try {
+            const res = await fetch("/api/files/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path: activeFilePath, content: content })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                isFileDirty = false;
+                statusEl.innerText = "● Salvo";
+                statusEl.className = "editor-status-pill saved";
+                showToast("Arquivo salvo com sucesso!");
+            } else {
+                statusEl.innerText = "● Erro ao salvar";
+                statusEl.className = "editor-status-pill unsaved";
+                showToast(`Erro ao salvar: ${data.message}`, "danger");
+            }
+        } catch (err) {
+            showToast("Erro de rede ao salvar arquivo.", "danger");
+            console.error(err);
+        }
+    }
+
+    function closeEditor() {
+        if (isFileDirty) {
+            if (!confirm("Você tem alterações não salvas. Deseja realmente fechar o editor?")) {
+                return;
+            }
+        }
+        const overlay = document.getElementById("editor-overlay");
+        overlay.classList.remove("active");
+        activeFilePath = null;
+        isFileDirty = false;
+        loadDirectory(currentPath); // refresh list to update modified date/size
+    }
+
+    function toggleFullscreenEditor() {
+        const win = document.getElementById("editor-window");
+        win.classList.toggle("fullscreen");
+        setTimeout(() => {
+            codeMirrorInstance.refresh();
+        }, 150);
+    }
+
+    // =========================================================================
+    // Image Preview Modal
+    // =========================================================================
+
+    function openImagePreview(filePath, filename) {
+        document.getElementById("image-preview-title").innerText = filename;
+        const img = document.getElementById("image-preview-src");
+        const downloadBtn = document.getElementById("image-download-btn");
+        const url = `/api/files/download?path=${encodeURIComponent(filePath)}`;
+        img.src = url;
+        downloadBtn.href = url;
+        openModal("modal-image-preview");
+    }
+
+    // =========================================================================
+    // File / Folder Creation, Rename, Delete, Upload
+    // =========================================================================
+
+    function openNewFileModal() {
+        document.getElementById("new-file-name").value = "";
+        openModal("modal-new-file");
+        setTimeout(() => document.getElementById("new-file-name").focus(), 100);
+    }
+
+    async function handleCreateFile(e) {
+        e.preventDefault();
+        const name = document.getElementById("new-file-name").value.trim();
+        if (!name) return;
+
+        try {
+            const res = await fetch("/api/files/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ parent: currentPath, name: name, is_dir: false })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeModal("modal-new-file");
+                showToast(data.message);
+                loadDirectory(currentPath);
+                // Prompt to edit directly
+                const newFilePath = currentPath.endsWith("/") ? currentPath + name : currentPath + "/" + name;
+                openEditor(newFilePath);
+            } else {
+                showToast(data.message || "Erro ao criar arquivo", "danger");
+            }
+        } catch (err) {
+            showToast("Erro ao conectar com o servidor.", "danger");
+        }
+    }
+
+    function openNewFolderModal() {
+        document.getElementById("new-folder-name").value = "";
+        openModal("modal-new-folder");
+        setTimeout(() => document.getElementById("new-folder-name").focus(), 100);
+    }
+
+    async function handleCreateFolder(e) {
+        e.preventDefault();
+        const name = document.getElementById("new-folder-name").value.trim();
+        if (!name) return;
+
+        try {
+            const res = await fetch("/api/files/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ parent: currentPath, name: name, is_dir: true })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeModal("modal-new-folder");
+                showToast(data.message);
+                loadDirectory(currentPath);
+            } else {
+                showToast(data.message || "Erro ao criar pasta", "danger");
+            }
+        } catch (err) {
+            showToast("Erro ao conectar com o servidor.", "danger");
+        }
+    }
+
+    function openRenameModal(path, currentName) {
+        document.getElementById("rename-item-path").value = path;
+        document.getElementById("rename-item-name").value = currentName;
+        openModal("modal-rename");
+        setTimeout(() => document.getElementById("rename-item-name").focus(), 100);
+    }
+
+    async function handleRenameSubmit(e) {
+        e.preventDefault();
+        const path = document.getElementById("rename-item-path").value;
+        const newName = document.getElementById("rename-item-name").value.trim();
+        if (!newName) return;
+
+        try {
+            const res = await fetch("/api/files/rename", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path: path, new_name: newName })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeModal("modal-rename");
+                showToast(data.message);
+                loadDirectory(currentPath);
+            } else {
+                showToast(data.message || "Erro ao renomear", "danger");
+            }
+        } catch (err) {
+            showToast("Erro de rede.", "danger");
+        }
+    }
+
+    function openDeleteModal(path, name) {
+        document.getElementById("delete-item-path").value = path;
+        document.getElementById("delete-item-name").innerText = name;
+        openModal("modal-delete");
+    }
+
+    async function executeDeleteItem() {
+        const path = document.getElementById("delete-item-path").value;
+        try {
+            const res = await fetch("/api/files/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path: path })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                closeModal("modal-delete");
+                showToast(data.message);
+                loadDirectory(currentPath);
+            } else {
+                showToast(data.message || "Erro ao excluir", "danger");
+            }
+        } catch (err) {
+            showToast("Erro de rede ao excluir.", "danger");
+        }
+    }
+
+    function openUploadModal() {
+        document.getElementById("upload-file-input").value = "";
+        document.getElementById("upload-unzip-check").checked = false;
+        openModal("modal-upload");
+    }
+
+    async function handleUploadSubmit(e) {
+        e.preventDefault();
+        const fileInput = document.getElementById("upload-file-input");
+        const unzipCheck = document.getElementById("upload-unzip-check");
+        const submitBtn = document.getElementById("upload-submit-btn");
+
+        if (!fileInput.files || fileInput.files.length === 0) {
+            showToast("Selecione um arquivo para enviar.", "danger");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const formData = new FormData();
+        formData.append("parent", currentPath);
+        formData.append("unzip", unzipCheck.checked);
+        formData.append("file", file);
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Enviando...";
+
+        try {
+            const res = await fetch("/api/files/upload", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Enviar";
+
+            if (res.ok && data.success) {
+                closeModal("modal-upload");
+                showToast(data.message);
+                loadDirectory(currentPath);
+            } else {
+                showToast(data.message || "Erro no envio", "danger");
+            }
+        } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.innerText = "Enviar";
+            showToast("Erro de conexão durante o upload.", "danger");
+        }
+    }
+</script>
+{% endblock %}

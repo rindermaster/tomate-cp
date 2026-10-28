@@ -13,7 +13,11 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request, Form, UploadFile, File, HTTPException, status, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
+from app.files import (
+    list_directory, read_file, save_file, create_file,
+    create_directory, rename_item, delete_item, upload_to_directory, is_safe_path
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -169,6 +173,25 @@ async def sites_page(request: Request, msg: Optional[str] = None, err: Optional[
     return templates.TemplateResponse(request=request, name="sites.html", context=context)
 
 
+@app.get("/files", response_class=HTMLResponse)
+async def files_page(request: Request, path: Optional[str] = None):
+    require_auth(request, config)
+    all_sites = list_sites(config)
+    www_dir = config.get("nginx_www_dir", "/var/www")
+    
+    target_path = path if path else www_dir
+    if not os.path.exists(target_path):
+        target_path = www_dir
+
+    context = get_template_context(request, {
+        "page": "files",
+        "sites": all_sites,
+        "initial_path": target_path,
+        "www_dir": www_dir,
+    })
+    return templates.TemplateResponse(request=request, name="files.html", context=context)
+
+
 @app.get("/deploy", response_class=HTMLResponse)
 async def deploy_page(request: Request, site: Optional[str] = None, msg: Optional[str] = None, err: Optional[str] = None):
     require_auth(request, config)
@@ -315,6 +338,131 @@ async def api_upload_zip(
     if ok:
         return RedirectResponse(url=f"/deploy?site={domain}&msg={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
     return RedirectResponse(url=f"/deploy?site={domain}&err={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
+
+
+# -----------------------------------------------------------------------------
+# File Manager & Code Editor API
+# -----------------------------------------------------------------------------
+@app.get("/api/files/list")
+async def api_files_list(request: Request, path: str = "/var/www"):
+    require_auth(request, config)
+    ok, result = list_directory(path)
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "message": result})
+    return {"success": True, "data": result}
+
+
+@app.get("/api/files/read")
+async def api_files_read(request: Request, path: str):
+    require_auth(request, config)
+    ok, result = read_file(path)
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "message": result})
+    return {"success": True, "data": result}
+
+
+@app.post("/api/files/save")
+async def api_files_save(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Corpo da requisição inválido."})
+        
+    path = data.get("path")
+    file_content = data.get("content", "")
+    if not path:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Caminho do arquivo não fornecido."})
+    
+    ok, msg = save_file(path, file_content)
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "message": msg})
+    return {"success": True, "message": msg}
+
+
+@app.post("/api/files/create")
+async def api_files_create(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Corpo da requisição inválido."})
+
+    parent = data.get("parent")
+    name = data.get("name")
+    is_dir = data.get("is_dir", False)
+    if not parent or not name:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Diretório e nome são obrigatórios."})
+    
+    if is_dir:
+        ok, msg = create_directory(parent, name)
+    else:
+        ok, msg = create_file(parent, name)
+        
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "message": msg})
+    return {"success": True, "message": msg}
+
+
+@app.post("/api/files/rename")
+async def api_files_rename(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Corpo da requisição inválido."})
+
+    path = data.get("path")
+    new_name = data.get("new_name")
+    if not path or not new_name:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Caminho e novo nome são obrigatórios."})
+    
+    ok, msg = rename_item(path, new_name)
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "message": msg})
+    return {"success": True, "message": msg}
+
+
+@app.post("/api/files/delete")
+async def api_files_delete(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Corpo da requisição inválido."})
+
+    path = data.get("path")
+    if not path:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Caminho do item não fornecido."})
+    
+    ok, msg = delete_item(path)
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "message": msg})
+    return {"success": True, "message": msg}
+
+
+@app.post("/api/files/upload")
+async def api_files_upload(
+    request: Request,
+    parent: str = Form(...),
+    unzip: bool = Form(False),
+    file: UploadFile = File(...)
+):
+    require_auth(request, config)
+    content_bytes = await file.read()
+    ok, msg = upload_to_directory(parent, file.filename, content_bytes, unzip=unzip)
+    if not ok:
+        return JSONResponse(status_code=400, content={"success": False, "message": msg})
+    return {"success": True, "message": msg}
+
+
+@app.get("/api/files/download")
+async def api_files_download(request: Request, path: str):
+    require_auth(request, config)
+    if not is_safe_path(path) or not os.path.exists(path) or not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado ou acesso negado.")
+    filename = os.path.basename(path)
+    return FileResponse(path, filename=filename)
 
 
 @app.post("/api/system/nginx-reload")
