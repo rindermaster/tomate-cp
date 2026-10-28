@@ -65,7 +65,17 @@ def test_nginx_syntax(nginx_bin: str = "/usr/sbin/nginx") -> Tuple[bool, str]:
         )
         if proc.returncode == 0:
             return True, "Syntax OK"
-        return False, proc.stderr.strip()
+        err = proc.stderr.strip()
+        # Clean up timestamp and PID noise
+        lines = [l.strip() for l in err.splitlines() if l.strip()]
+        clean_lines = []
+        for l in lines:
+            if "[emerg]" in l:
+                clean_lines.append(l.split("[emerg]")[-1].strip().lstrip("0123456789#:").strip())
+            elif "test failed" not in l and "syntax is ok" not in l:
+                clean_lines.append(l)
+        clean_err = "; ".join(clean_lines) if clean_lines else err
+        return False, clean_err
     except Exception as e:
         return False, str(e)
 
@@ -182,9 +192,31 @@ def create_site(
     port: int = 80
 ) -> Tuple[bool, str]:
     """Creates a new Nginx virtual host with atomic reload and rollback."""
+    # Auto sanitize domain (strip http://, https://, trailing slashes)
     domain = domain.strip().lower()
+    if domain.startswith("http://"):
+        domain = domain[7:]
+    elif domain.startswith("https://"):
+        domain = domain[8:]
+    domain = domain.split("/")[0].strip()
+
+    panel_port = int(config.get("port", 8888))
+    if int(port) == panel_port:
+        return False, f"A porta {port} é reservada pelo próprio painel TomateCP. Para sites web, mantenha a porta 80."
+
     if not validate_domain(domain):
-        return False, "Nome de domínio inválido. Use letras, números, hífens e pontos."
+        return False, "Nome de domínio inválido. Use letras, números, hífens e pontos (ex: meusite.com)."
+
+    # Auto sanitize proxy_target
+    if site_type == "proxy":
+        target = proxy_target.strip()
+        if not target:
+            return False, "Endereço de destino do Proxy Reverso é obrigatório."
+        if target.isdigit():
+            target = f"http://127.0.0.1:{target}"
+        elif not target.startswith("http://") and not target.startswith("https://"):
+            target = f"http://{target}"
+        proxy_target = target.rstrip("/")
 
     avail_dir, enabled_dir, www_dir = get_nginx_paths(config)
     conf_filename = f"{domain}.conf"

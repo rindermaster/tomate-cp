@@ -6,6 +6,7 @@ Built with FastAPI, Jinja2, and zero bloat.
 
 import os
 import json
+import urllib.parse
 import shutil
 import subprocess
 from pathlib import Path
@@ -226,8 +227,8 @@ async def api_create_site(
     require_auth(request, config)
     ok, msg = create_site(config, domain, site_type, proxy_target, custom_root, port)
     if ok:
-        return RedirectResponse(url=f"/sites?msg={msg}", status_code=status.HTTP_302_FOUND)
-    return RedirectResponse(url=f"/sites?err={msg}", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url=f"/sites?msg={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=f"/sites?err={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
 
 
 @app.post("/api/sites/toggle")
@@ -250,8 +251,8 @@ async def api_delete_site(
     require_auth(request, config)
     ok, msg = delete_site(config, domain, delete_files)
     if ok:
-        return RedirectResponse(url=f"/sites?msg={msg}", status_code=status.HTTP_302_FOUND)
-    return RedirectResponse(url=f"/sites?err={msg}", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url=f"/sites?msg={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=f"/sites?err={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
 
 
 @app.post("/api/sites/upload-zip")
@@ -273,8 +274,8 @@ async def api_upload_zip(
         os.remove(temp_zip)
 
     if ok:
-        return RedirectResponse(url=f"/deploy?site={domain}&msg={msg}", status_code=status.HTTP_302_FOUND)
-    return RedirectResponse(url=f"/deploy?site={domain}&err={msg}", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url=f"/deploy?site={domain}&msg={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=f"/deploy?site={domain}&err={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
 
 
 @app.post("/api/system/nginx-reload")
