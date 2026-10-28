@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — {{ panel_name }}{% endblock %}
+{% block header_title %}Visão Geral do Servidor{% endblock %}
+
+{% block header_actions %}
+<a href="/sites" class="btn btn-primary btn-sm">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Adicionar Site
+</a>
+{% endblock %}
+
+{% block content %}
+<div id="dashboard-root">
+    <!-- Telemetry Bento Grid -->
+    <div class="bento-grid">
+        <!-- CPU & Thermal Card -->
+        <div class="bento-card col-span-1">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+                    Temperatura CPU
+                </span>
+                <span id="metric-temp-badge" class="badge badge-success">
+                    {{ telemetry.temp_status | capitalize }}
+                </span>
+            </div>
+            <div class="card-metric" id="metric-temp-val">
+                {{ telemetry.cpu_temp }}°C
+            </div>
+            <div class="card-subtext">
+                SoC: {{ telemetry.os_info.arch }} ({{ telemetry.os_info.cpu_count }} Cores)
+            </div>
+            <div class="progress-bar-bg">
+                <div id="metric-cpu-bar" class="progress-bar-fill success" style="width: {{ telemetry.cpu_percent }}%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--color-text-subtle);">
+                <span>Carga: <strong id="metric-cpu-val" style="color: var(--color-text);">{{ telemetry.cpu_percent }}%</strong></span>
+                <span>Load: <strong id="metric-load-val" style="color: var(--color-text);">{{ telemetry.load_avg.load1 }}</strong></span>
+            </div>
+        </div>
+
+        <!-- RAM & zRAM Memory Card -->
+        <div class="bento-card col-span-1">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h.01"/><path d="M17 7h.01"/><path d="M7 17h.01"/><path d="M17 17h.01"/></svg>
+                    Memória RAM
+                </span>
+                <span class="badge badge-neutral">DDR3</span>
+            </div>
+            <div class="card-metric" id="metric-ram-val">
+                {{ telemetry.memory.ram_percent }}<span>%</span>
+            </div>
+            <div class="card-subtext" id="metric-ram-sub">
+                {{ telemetry.memory.ram_used_mb }} MB de {{ telemetry.memory.ram_total_mb }} MB
+            </div>
+            <div class="progress-bar-bg">
+                <div id="metric-ram-bar" class="progress-bar-fill success" style="width: {{ telemetry.memory.ram_percent }}%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--color-text-subtle);">
+                <span>zRAM (Swap): <strong id="metric-swap-val" style="color: var(--color-text);">{{ telemetry.memory.swap_percent }}%</strong></span>
+                <span id="metric-swap-sub">{{ telemetry.memory.swap_used_mb }} MB</span>
+            </div>
+        </div>
+
+        <!-- Storage eMMC Card -->
+        <div class="bento-card col-span-1">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>
+                    Armazenamento
+                </span>
+                <span class="badge badge-neutral">eMMC / Flash</span>
+            </div>
+            <div class="card-metric" id="metric-disk-val">
+                {{ telemetry.disk.disk_percent }}<span>%</span>
+            </div>
+            <div class="card-subtext" id="metric-disk-sub">
+                {{ telemetry.disk.disk_used_gb }} GB de {{ telemetry.disk.disk_total_gb }} GB
+            </div>
+            <div class="progress-bar-bg">
+                <div id="metric-disk-bar" class="progress-bar-fill" style="width: {{ telemetry.disk.disk_percent }}%;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: var(--color-text-subtle);">
+                <span>Livre: <strong style="color: var(--color-accent);">{{ telemetry.disk.disk_free_gb }} GB</strong></span>
+                <span>Partição: /</span>
+            </div>
+        </div>
+
+        <!-- Sites Hosted Card -->
+        <div class="bento-card col-span-1">
+            <div class="card-header">
+                <span class="card-title">
+                    <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                    Sites Hospedados
+                </span>
+                <span class="badge badge-success">{{ sites_active }} Ativos</span>
+            </div>
+            <div class="card-metric">
+                {{ sites_total }}
+            </div>
+            <div class="card-subtext">
+                Domínios configurados no Nginx
+            </div>
+            <div style="margin-top: 18px;">
+                <a href="/sites" class="btn btn-outline btn-sm" style="width: 100%;">
+                    Gerenciar Sites →
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Telemetry & Hardware Info Banner -->
+    <div class="bento-card col-span-4" style="margin-bottom: 28px;">
+        <div class="card-header" style="margin-bottom: 12px;">
+            <span class="card-title">
+                <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+                Informações do Dispositivo
+            </span>
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-text-muted);">
+                <span>Tempo Ativo:</span>
+                <strong id="metric-uptime" style="color: #FFFFFF;">{{ telemetry.uptime }}</strong>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; font-size: 13px;">
+            <div>
+                <span style="color: var(--color-text-subtle); display: block; font-size: 11px; text-transform: uppercase;">Sistema Operacional</span>
+                <strong style="color: #FFFFFF;">{{ telemetry.os_info.os_name }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--color-text-subtle); display: block; font-size: 11px; text-transform: uppercase;">Kernel Linux</span>
+                <strong style="color: #FFFFFF;">{{ telemetry.os_info.kernel }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--color-text-subtle); display: block; font-size: 11px; text-transform: uppercase;">Hostname</span>
+                <strong style="color: #FFFFFF;">{{ telemetry.os_info.hostname }}</strong>
+            </div>
+            <div>
+                <span style="color: var(--color-text-subtle); display: block; font-size: 11px; text-transform: uppercase;">IP Local (LAN)</span>
+                <strong style="color: var(--color-accent); font-family: var(--font-mono);">{{ telemetry.local_ip }}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+[Unit]
+Description=TomateCP - Ultra-Lightweight Web Hosting Panel
+After=network.target nginx.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/tomate-cp
+ExecStart=/opt/tomate-cp/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8888
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

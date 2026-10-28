@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Deploy & Upload — {{ panel_name }}{% endblock %}
+{% block header_title %}Publicação de Sites (Deploy){% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+    <!-- Upload Area -->
+    <div class="bento-card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 16 4-4 4 4"/></svg>
+                Enviar Pacote do Site (.zip)
+            </span>
+        </div>
+
+        <form action="/api/sites/upload-zip" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label class="form-label" for="domain-select">Selecione o Site de Destino</label>
+                <select id="domain-select" name="domain" class="form-control" required>
+                    {% for s in sites %}
+                    <option value="{{ s.domain }}" {% if selected_site == s.domain %}selected{% endif %}>
+                        {{ s.domain }} ({{ s.root_path }})
+                    </option>
+                    {% else %}
+                    <option value="">Nenhum site cadastrado</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="dropzone" id="zip-dropzone" onclick="document.getElementById('file-input').click()">
+                <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                <h4 style="font-size: 15px; font-weight: 700; color: #FFFFFF; margin-bottom: 6px;">
+                    Arraste seu arquivo ZIP aqui ou clique para selecionar
+                </h4>
+                <p style="font-size: 13px; color: var(--color-text-subtle);">
+                    O TomateCP extrairá os arquivos diretamente na pasta web com as permissões corretas.
+                </p>
+                <input type="file" id="file-input" name="file" accept=".zip" style="display: none;" onchange="handleFileSelected(this)">
+                <div id="file-selected-name" style="margin-top: 14px; font-weight: 600; color: var(--color-accent); font-size: 14px;"></div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <button type="submit" id="btn-submit-upload" class="btn btn-primary" disabled>
+                    Extrair e Publicar Site
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Quick Help & Cloudflare Tunnel Card -->
+    <div class="bento-card">
+        <div class="card-header">
+            <span class="card-title">
+                <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="16" y2="12"/><line x1="12" x2="12.01" y1="8" y2="8"/></svg>
+                Como Funciona o Deploy
+            </span>
+        </div>
+
+        <div style="font-size: 13px; color: var(--color-text-muted); display: flex; flex-direction: column; gap: 14px; line-height: 1.6;">
+            <div>
+                <strong style="color: #FFFFFF; display: block; margin-bottom: 4px;">1. Estrutura do ZIP</strong>
+                Coloque o seu <code>index.html</code> e pastas de assets (css, js, imagens) na raiz do arquivo ZIP.
+            </div>
+
+            <div>
+                <strong style="color: #FFFFFF; display: block; margin-bottom: 4px;">2. Permissões Automáticas</strong>
+                Ao extrair, o TomateCP atribui a propriedade dos arquivos para o usuário <code>www-data</code> do Nginx.
+            </div>
+
+            <div>
+                <strong style="color: #FFFFFF; display: block; margin-bottom: 4px;">3. Cloudflare Tunnel</strong>
+                Se você usa o Cloudflare Tunnel no servidor, adicione uma regra de Ingress para o novo subdomínio apontando para <code>http://localhost:80</code>.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function handleFileSelected(input) {
+    const file = input.files[0];
+    const nameEl = document.getElementById("file-selected-name");
+    const btn = document.getElementById("btn-submit-upload");
+    if (file) {
+        nameEl.innerText = `📦 ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+        btn.disabled = false;
+    } else {
+        nameEl.innerText = "";
+        btn.disabled = true;
+    }
+}
+
+// Drag & drop visual effects
+const dropzone = document.getElementById("zip-dropzone");
+['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+    }, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+    }, false);
+});
+
+dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0 && files[0].name.endsWith('.zip')) {
+        document.getElementById('file-input').files = files;
+        handleFileSelected(document.getElementById('file-input'));
+    } else {
+        alert("Por favor, selecione apenas arquivos com formato .zip");
+    }
+});
+</script>
+{% endblock %}

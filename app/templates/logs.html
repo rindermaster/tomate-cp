@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Logs do Servidor — {{ panel_name }}{% endblock %}
+{% block header_title %}Logs do Nginx{% endblock %}
+
+{% block content %}
+<div class="bento-card">
+    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+            <span class="card-title">
+                <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
+                Terminal de Logs
+            </span>
+            <select id="log-type" class="form-control" style="width: 180px; padding: 6px 10px; font-size: 13px;" onchange="document.getElementById('auto-refresh-logs').dispatchEvent(new Event('change'))">
+                <option value="access">Access Log (Tráfego)</option>
+                <option value="error">Error Log (Erros)</option>
+            </select>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); cursor: pointer;">
+                <input type="checkbox" id="auto-refresh-logs" checked>
+                Auto-atualizar (3s)
+            </label>
+            <button class="btn btn-outline btn-sm" onclick="copyLogs()">
+                Copiar Logs
+            </button>
+        </div>
+    </div>
+
+    <pre class="log-console" id="log-content">Carregando registros do servidor...</pre>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyLogs() {
+    const text = document.getElementById("log-content").innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Logs copiados para a área de transferência!", "success");
+    }).catch(() => {
+        showToast("Não foi possível copiar os logs.", "danger");
+    });
+}
+</script>
+{% endblock %}

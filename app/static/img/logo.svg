@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48" fill="none">
+  <!-- Glowing subtle shadow -->
+  <circle cx="24" cy="27" r="18" fill="url(#tomatoGlow)" opacity="0.25" filter="blur(4px)" />
+  
+  <!-- Tomato body -->
+  <path d="M24 11C13.5 11 7 18 7 27C7 36 13.5 43 24 43C34.5 43 41 36 41 27C41 18 34.5 11 24 11Z" fill="url(#tomatoGradient)" />
+  
+  <!-- Subtle highlight reflection -->
+  <path d="M14 18C12 21 11.5 24 11.5 27C11.5 30 12.5 33 14 35" stroke="rgba(255,255,255,0.25)" stroke-width="2.5" stroke-linecap="round" />
+  
+  <!-- Server circuit dots / Server rack representation on tomato -->
+  <rect x="18" y="23" width="12" height="2" rx="1" fill="#FFFFFF" opacity="0.85" />
+  <rect x="18" y="28" width="12" height="2" rx="1" fill="#FFFFFF" opacity="0.85" />
+  <rect x="18" y="33" width="12" height="2" rx="1" fill="#FFFFFF" opacity="0.85" />
+  <circle cx="15" cy="24" r="1" fill="#22C55E" />
+  <circle cx="15" cy="29" r="1" fill="#22C55E" />
+  <circle cx="15" cy="34" r="1" fill="#22C55E" />
+
+  <!-- Tomato stem and leaf -->
+  <path d="M24 6V11" stroke="#15803D" stroke-width="3" stroke-linecap="round" />
+  <path d="M24 10C21 8 16 7.5 13 10C16 11.5 20 12 24 11C28 12 32 11.5 35 10C32 7.5 27 8 24 10Z" fill="#22C55E" />
+  
+  <defs>
+    <radialGradient id="tomatoGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(24 27) rotate(90) scale(18)">
+      <stop stop-color="#EF4444" />
+      <stop offset="1" stop-color="#EF4444" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tomatoGradient" x1="7" y1="11" x2="41" y2="43" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F87171" />
+      <stop offset="0.5" stop-color="#EF4444" />
+      <stop offset="1" stop-color="#B91C1C" />
+    </linearGradient>
+  </defs>
+</svg>

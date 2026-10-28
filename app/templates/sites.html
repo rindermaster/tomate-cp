@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Sites & Domínios — {{ panel_name }}{% endblock %}
+{% block header_title %}Sites & Domínios{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-primary btn-sm" onclick="openModal('modal-create-site')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Criar Novo Site
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Domínio</th>
+                <th>Tipo</th>
+                <th>Diretório / Destino</th>
+                <th>Arquivos</th>
+                <th>Status</th>
+                <th style="text-align: right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for site in sites %}
+            <tr>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <a href="http://{{ site.domain }}" target="_blank" rel="noopener" style="font-weight: 700; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+                            {{ site.domain }}
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+                        </a>
+                    </div>
+                </td>
+                <td>
+                    {% if site.type == 'static' %}
+                    <span class="badge badge-success">Estático (HTML)</span>
+                    {% elif site.type == 'proxy' %}
+                    <span class="badge badge-warning">Proxy Reverso</span>
+                    {% elif site.type == 'php' %}
+                    <span class="badge badge-neutral">PHP-FPM</span>
+                    {% endif %}
+                </td>
+                <td style="font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted);">
+                    {% if site.type == 'proxy' %}
+                    {{ site.proxy_target }}
+                    {% else %}
+                    {{ site.root_path }}
+                    {% endif %}
+                </td>
+                <td>
+                    <span style="font-size: 13px; color: var(--color-text-subtle);">
+                        {{ site.files_count }} arquivo(s)
+                    </span>
+                </td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label class="toggle-switch">
+                            <input type="checkbox" class="toggle-site" {% if site.active %}checked{% endif %} onchange="handleSiteToggle('{{ site.domain }}', this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="status-badge-{{ site.domain }}" class="badge {% if site.active %}badge-success{% else %}badge-neutral{% endif %}">
+                            {{ 'Ativo' if site.active else 'Pausado' }}
+                        </span>
+                    </div>
+                </td>
+                <td style="text-align: right;">
+                    <div style="display: inline-flex; align-items: center; gap: 8px;">
+                        <a href="/deploy?site={{ site.domain }}" class="btn btn-outline btn-sm" title="Enviar arquivos ZIP">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 16 4-4 4 4"/></svg>
+                            Deploy
+                        </a>
+                        <button class="btn btn-danger btn-sm" onclick="confirmDeleteSite('{{ site.domain }}')" title="Excluir site">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 48px; color: var(--color-text-subtle);">
+                    <p style="margin-bottom: 12px; font-size: 15px;">Nenhum site configurado ainda.</p>
+                    <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-site')">
+                        Adicionar Primeiro Site
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal: Criar Novo Site -->
+<div id="modal-create-site" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="modal-title">Adicionar Novo Site</h3>
+            <button class="modal-close" onclick="closeModal('modal-create-site')">&times;</button>
+        </div>
+        <form action="/api/sites/create" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="domain">Nome do Domínio</label>
+                    <input type="text" id="domain" name="domain" class="form-control" placeholder="ex: cliente.zipdigital.site ou meusite.com" required>
+                    <div class="form-hint">O Nginx responderá a requisições com este cabeçalho Host.</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="site_type">Tipo de Hospedagem</label>
+                    <select id="site_type" name="site_type" class="form-control" onchange="toggleProxyFields()">
+                        <option value="static">Site Estático (HTML, CSS, JS, React/Vue build)</option>
+                        <option value="proxy">Proxy Reverso (Node.js, Python, Docker, Porta local)</option>
+                        <option value="php">PHP-FPM (Scripts PHP, WordPress, Laravel)</option>
+                    </select>
+                </div>
+
+                <div id="group-proxy-target" class="form-group" style="display: none;">
+                    <label class="form-label" for="proxy_target">Endereço de Destino (Proxy Pass)</label>
+                    <input type="text" id="proxy_target" name="proxy_target" class="form-control" placeholder="http://127.0.0.1:3000">
+                    <div class="form-hint">Porta ou serviço local onde a aplicação está rodando.</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="port">Porta de Escuta Nginx</label>
+                    <input type="number" id="port" name="port" class="form-control" value="80" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-create-site')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Criar e Ativar Site</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Confirmar Exclusão -->
+<div id="modal-delete-site" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="modal-title">Confirmar Exclusão</h3>
+            <button class="modal-close" onclick="closeModal('modal-delete-site')">&times;</button>
+        </div>
+        <form action="/api/sites/delete" method="POST">
+            <input type="hidden" id="delete-domain-input" name="domain" value="">
+            <div class="modal-body">
+                <p style="font-size: 14px; margin-bottom: 16px;">
+                    Tem certeza de que deseja remover o site <strong id="delete-domain-name" style="color: #FFFFFF;"></strong> do Nginx?
+                </p>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-danger); cursor: pointer;">
+                    <input type="checkbox" name="delete_files" value="true">
+                    Excluir também os arquivos da pasta web (/var/www)
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-delete-site')">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Excluir Site</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleProxyFields() {
+    const type = document.getElementById("site_type").value;
+    const proxyGroup = document.getElementById("group-proxy-target");
+    if (type === "proxy") {
+        proxyGroup.style.display = "block";
+    } else {
+        proxyGroup.style.display = "none";
+    }
+}
+
+function confirmDeleteSite(domain) {
+    document.getElementById("delete-domain-input").value = domain;
+    document.getElementById("delete-domain-name").innerText = domain;
+    openModal("modal-delete-site");
+}
+</script>
+{% endblock %}

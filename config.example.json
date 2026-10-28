@@ -1,0 +1,16 @@
+{
+  "panel_name": "TomateCP",
+  "brand_name": "Tomate Mini Server",
+  "company_name": "ZipDigital",
+  "accent_color": "#EF4444",
+  "port": 8888,
+  "host": "0.0.0.0",
+  "secret_key": "tomate-cp-ultra-secure-secret-key",
+  "admin_username": "admin",
+  "admin_password": "admin",
+  "sites_available_dir": "/etc/nginx/sites-available",
+  "sites_enabled_dir": "/etc/nginx/sites-enabled",
+  "www_root_dir": "/var/www",
+  "nginx_bin": "/usr/sbin/nginx",
+  "systemctl_bin": "/bin/systemctl"
+}
