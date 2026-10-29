@@ -608,10 +608,11 @@ async function loadSiteFiles() {
     try {
         const res = await fetch(`/api/files/list?path=/var/www/${activeSite}`);
         const data = await res.json();
-        if (data.success && data.items) {
-            countLabel.innerText = `${data.items.length} itens`;
+        const items = data.data && data.data.items ? data.data.items : (data.items || []);
+        if (data.success) {
+            countLabel.innerText = `${items.length} itens`;
             let html = "";
-            data.items.forEach(item => {
+            items.forEach(item => {
                 const icon = item.is_dir ? "📁" : "📄";
                 html += `
                     <div class="file-item-pill">
