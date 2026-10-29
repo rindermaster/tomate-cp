@@ -6,93 +6,125 @@
 {% block content %}
 <style>
 /* ==========================================================================
-   🤖 TOMATE IA STUDIO - LOVABLE / V0 SPLIT-PANE WORKSPACE
+   🤖 TOMATE IA STUDIO - PIXEL PERFECT VIEWPORT FIT (LOVABLE / V0 / BOLT)
    ========================================================================== */
+
+/* Prevent global page scroll on desktop so studio behaves like an IDE */
+@media (min-width: 1025px) {
+  html, body {
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+  .main-wrapper {
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+  .main-content {
+    height: 100vh !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .top-header {
+    flex-shrink: 0 !important;
+  }
+  .content {
+    flex: 1 !important;
+    padding: 10px 16px !important;
+    max-width: 100% !important;
+    height: calc(100vh - 65px) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .ai-studio-container {
+    flex: 1;
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
 
 /* Mobile Segment Switcher */
 .ai-mobile-switcher {
   display: none;
   background: #1E293B;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 4px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   gap: 6px;
+  flex-shrink: 0;
 }
 .ai-mobile-switcher button {
   flex: 1;
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   color: #94A3B8;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: all 0.2s ease;
 }
 .ai-mobile-switcher button.active {
   background: #0F172A;
   color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
-/* Studio Container */
+/* Studio Grid Layout */
 .ai-studio-container {
   display: grid;
-  grid-template-columns: 460px 1fr;
-  gap: 16px;
-  height: calc(100vh - 125px);
-  min-height: 650px;
+  grid-template-columns: 340px 1fr;
+  gap: 12px;
+  height: calc(100vh - 85px);
+  min-height: 550px;
+  overflow: hidden;
 }
 
 /* ==========================================================================
-   LEFT PANEL: CHAT STUDIO
+   LEFT PANEL: CHAT STUDIO (SLIM, COMPACT 340PX)
    ========================================================================== */
 .ai-chat-studio {
   background: #1E293B;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  height: 100%;
 }
 
 /* Chat Header */
 .ai-chat-header {
-  padding: 12px 16px;
-  background: rgba(15, 23, 42, 0.75);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-}
-
-.ai-site-select-group {
-  display: flex;
-  align-items: center;
   gap: 8px;
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .ai-site-select {
   background: #0B1120;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: #FFFFFF;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 8px;
+  padding: 5px 10px;
+  border-radius: 6px;
   cursor: pointer;
   outline: none;
-  max-width: 200px;
+  flex: 1;
+  min-width: 0;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
@@ -104,39 +136,40 @@
 .ai-model-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(56, 189, 248, 0.25);
   color: #38BDF8;
   font-size: 11px;
   font-weight: 700;
-  padding: 5px 10px;
-  border-radius: 20px;
+  padding: 4px 8px;
+  border-radius: 14px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 .ai-model-pill:hover {
   background: rgba(56, 189, 248, 0.2);
   border-color: #38BDF8;
 }
 
-/* Chat Thread */
+/* Chat Messages Thread */
 .ai-chat-thread {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   background: #0F172A;
 }
 
 .ai-msg {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   max-width: 95%;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.15s ease-out;
 }
 
 .ai-msg.user {
@@ -149,31 +182,31 @@
 }
 
 .ai-msg-avatar {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   flex-shrink: 0;
 }
 .ai-msg.user .ai-msg-avatar {
-  background: #3B82F6;
+  background: #2563EB;
   color: #FFFFFF;
 }
 .ai-msg.assistant .ai-msg-avatar {
   background: #EF4444;
   color: #FFFFFF;
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
 }
 
 .ai-bubble {
-  padding: 12px 16px;
-  border-radius: 12px;
-  font-size: 13.5px;
-  line-height: 1.55;
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: #F8FAFC;
   word-break: break-word;
 }
@@ -185,71 +218,72 @@
 }
 .ai-msg.assistant .ai-bubble {
   background: #1E293B;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom-left-radius: 2px;
   color: #F8FAFC;
 }
 
-/* Proposal Summary Pill in Chat (Compact Lovable style) */
+/* Compact Proposal Summary in Chat */
 .ai-change-summary {
-  margin-top: 12px;
+  margin-top: 8px;
   background: #0B1120;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 .ai-change-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 .ai-change-filename {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   color: #86EFAC;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 .ai-change-actions-row {
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 4px;
 }
 
 /* Chat Footer (Input) */
 .ai-chat-footer {
-  padding: 12px 14px;
+  padding: 10px 12px;
   background: rgba(15, 23, 42, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-/* Quick Prompt Chips */
+/* Quick Prompt Chips (Compact) */
 .ai-chips-scroll {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 .ai-chips-scroll::-webkit-scrollbar {
-  height: 4px;
+  height: 3px;
 }
 .ai-chip {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #CBD5E1;
-  font-size: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94A3B8;
+  font-size: 10.5px;
   font-weight: 600;
-  padding: 5px 10px;
-  border-radius: 14px;
+  padding: 3px 8px;
+  border-radius: 12px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
@@ -262,20 +296,20 @@
 
 .ai-input-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-end;
 }
 .ai-textarea {
   flex: 1;
   background: #0B1120;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 10px;
-  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 8px 10px;
   color: #FFFFFF;
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.4;
   resize: none;
-  height: 52px;
+  height: 44px;
   outline: none;
   font-family: inherit;
 }
@@ -286,98 +320,63 @@
   background: #EF4444;
   color: #FFFFFF;
   border: none;
-  border-radius: 10px;
-  height: 52px;
-  padding: 0 16px;
+  border-radius: 8px;
+  height: 44px;
+  padding: 0 12px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
 }
 .ai-send-btn:hover {
   background: #DC2626;
-  transform: translateY(-1px);
 }
 .ai-send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* ==========================================================================
-   RIGHT PANEL: WORKSPACE STUDIO (PREVIEW + CODE + FILES)
+   RIGHT PANEL: WORKSPACE STUDIO (THE HERO)
    ========================================================================== */
 .ai-workspace-studio {
   background: #1E293B;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  height: 100%;
 }
 
-/* Studio Nav Topbar */
+/* Studio Nav Topbar (Lovable-Style Clean) */
 .ai-workspace-nav {
-  padding: 8px 16px;
+  height: 48px;
+  padding: 0 14px;
   background: rgba(15, 23, 42, 0.85);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
-.ai-tab-group {
-  display: flex;
-  gap: 4px;
-}
-.ai-tab-pill {
-  padding: 8px 14px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: #94A3B8;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: all 0.2s ease;
-}
-.ai-tab-pill:hover {
-  color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.05);
-}
-.ai-tab-pill.active {
-  color: #FFFFFF;
-  background: #0F172A;
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.ai-context-tools {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Device Switcher (Desktop / Mobile) */
-.ai-device-toggle {
+/* Tab Segment Switcher */
+.ai-tab-segment {
   display: flex;
   background: #0B1120;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
   padding: 2px;
 }
-.ai-device-btn {
-  padding: 5px 10px;
+.ai-tab-segment-btn {
+  padding: 5px 12px;
   background: transparent;
   border: none;
   border-radius: 6px;
@@ -387,8 +386,86 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  transition: all 0.2s;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+.ai-tab-segment-btn:hover {
+  color: #FFFFFF;
+}
+.ai-tab-segment-btn.active {
+  background: #1E293B;
+  color: #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+
+/* Center Browser Address Bar (Lovable Mock) */
+.ai-browser-address-bar {
+  display: flex;
+  align-items: center;
+  background: #0B1120;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 3px 10px;
+  gap: 8px;
+  flex: 1;
+  max-width: 440px;
+}
+.ai-address-lock {
+  font-size: 11px;
+  opacity: 0.7;
+}
+.ai-address-url {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: #CBD5E1;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-address-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+.ai-address-btn:hover {
+  color: #FFFFFF;
+}
+
+/* Right Tools (Device Switcher & History) */
+.ai-workspace-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-device-toggle {
+  display: flex;
+  background: #0B1120;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 2px;
+}
+.ai-device-btn {
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
 }
 .ai-device-btn.active {
   background: #1E293B;
@@ -402,44 +479,54 @@
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  background: #090D16;
+  background: #070A11;
+  min-height: 0;
 }
 .ai-viewport.active {
   display: flex;
 }
 
 /* ==========================================================================
-   VIEWPORT 1: PREVIEW (AO VIVO)
+   VIEWPORT 1: PREVIEW CANVAS & BROWSER MOCKUP
    ========================================================================== */
-.ai-preview-banner {
-  background: linear-gradient(90deg, rgba(234, 179, 8, 0.15), rgba(234, 179, 8, 0.05));
-  border-bottom: 1px solid rgba(234, 179, 8, 0.3);
-  padding: 8px 16px;
-  font-size: 12px;
-  color: #FDE047;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
 .ai-preview-canvas {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: auto;
-  padding: 16px;
-  background: radial-gradient(circle at center, #131D31 0%, #090D16 100%);
+  overflow: hidden;
+  padding: 12px;
+  background: radial-gradient(circle at center, #0F172A 0%, #070A11 100%);
+  position: relative;
+  min-height: 0;
 }
 
+/* Floating Notification Toast when Previewing AI unapplied changes */
+.ai-preview-floating-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid #EAB308;
+  border-radius: 30px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  animation: slideUp 0.2s ease-out;
+}
+
+/* Desktop Browser Mockup Window */
 .ai-preview-frame-wrap {
   width: 100%;
   height: 100%;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.25s ease;
 }
 
 .ai-preview-frame-wrap.desktop {
@@ -447,90 +534,141 @@
   height: 100%;
 }
 
-.ai-preview-frame-wrap.mobile {
-  width: 380px;
-  height: 720px;
-  max-height: 96%;
-  background: #000000;
-  border: 10px solid #2B3544;
-  border-radius: 40px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 2px rgba(255, 255, 255, 0.1);
+.ai-preview-frame-wrap.desktop .ai-desktop-window {
+  width: 100%;
+  height: 100%;
+}
+
+.ai-desktop-window {
+  width: 100%;
+  height: 100%;
+  background: #0B1120;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+  transition: all 0.25s ease;
+}
+
+.ai-window-header {
+  height: 32px;
+  background: #0F172A;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.ai-window-dots {
+  display: flex;
+  gap: 6px;
+}
+.ai-window-dots .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.dot.red { background: #EF4444; }
+.dot.yellow { background: #F59E0B; }
+.dot.green { background: #10B981; }
+
+.ai-window-title {
+  font-size: 11px;
+  color: #94A3B8;
+  font-family: var(--font-mono);
+}
+
+/* Mobile Frame Mockup */
+.ai-preview-frame-wrap.mobile .ai-desktop-window {
+  width: 375px;
+  height: 660px;
+  max-height: 96%;
+  border-radius: 36px;
+  border: 8px solid #1E293B;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.1);
   position: relative;
 }
 
-.ai-preview-frame-wrap.mobile::before {
+.ai-preview-frame-wrap.mobile .ai-window-header {
+  height: 24px;
+  background: #1E293B;
+  border-bottom: none;
+  justify-content: center;
+}
+.ai-preview-frame-wrap.mobile .ai-window-dots,
+.ai-preview-frame-wrap.mobile .ai-window-title {
+  display: none;
+}
+.ai-preview-frame-wrap.mobile .ai-window-header::after {
   content: "";
-  position: absolute;
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 120px;
-  height: 18px;
-  background: #2B3544;
-  border-radius: 12px;
-  z-index: 10;
+  width: 80px;
+  height: 12px;
+  background: #0B1120;
+  border-radius: 8px;
 }
 
 .ai-preview-iframe {
+  flex: 1;
   width: 100%;
   height: 100%;
   border: none;
   background: #FFFFFF;
-  border-radius: 4px;
-}
-.ai-preview-frame-wrap.mobile .ai-preview-iframe {
-  border-radius: 28px;
 }
 
 /* ==========================================================================
-   VIEWPORT 2: CÓDIGO & DIFF
+   VIEWPORT 2: CODE & DIFF
    ========================================================================== */
 .ai-code-toolbar {
-  padding: 8px 16px;
+  height: 42px;
+  padding: 0 14px;
   background: #0F172A;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .ai-code-pre {
   flex: 1;
   margin: 0;
-  padding: 16px;
+  padding: 14px;
   background: #0B1120;
   color: #E2E8F0;
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.55;
   overflow: auto;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
 .ai-diff-line-add {
-  background: rgba(34, 197, 94, 0.15);
+  background: rgba(34, 197, 94, 0.12);
   color: #86EFAC;
   display: block;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-left: 3px solid #22C55E;
 }
 
 .ai-diff-line-del {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.12);
   color: #FCA5A5;
   display: block;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-left: 3px solid #EF4444;
 }
 
 .ai-diff-line-info {
-  background: rgba(56, 189, 248, 0.1);
+  background: rgba(56, 189, 248, 0.08);
   color: #7DD3FC;
   display: block;
-  padding: 2px 8px;
+  padding: 2px 6px;
 }
 
 .ai-code-textarea {
@@ -540,40 +678,40 @@
   background: #0B1120;
   color: #E2E8F0;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12.5px;
   line-height: 1.5;
-  padding: 16px;
+  padding: 14px;
   border: none;
   outline: none;
   resize: none;
 }
 
 /* ==========================================================================
-   VIEWPORT 3: ARQUIVOS & HISTÓRICO
+   VIEWPORT 3: ARQUIVOS
    ========================================================================== */
 .ai-files-pane {
   flex: 1;
   overflow-y: auto;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .ai-file-card {
-  padding: 10px 14px;
+  padding: 8px 12px;
   background: #1E293B;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
 .ai-file-card:hover {
   background: #273549;
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.15);
   transform: translateX(2px);
 }
 
@@ -585,7 +723,7 @@
   .ai-studio-container {
     grid-template-columns: 1fr;
     height: auto;
-    min-height: calc(100vh - 180px);
+    min-height: calc(100vh - 160px);
   }
   .ai-chat-studio.hide-mobile,
   .ai-workspace-studio.hide-mobile {
@@ -608,48 +746,44 @@
 <div class="ai-studio-container">
 
     <!-- ====================================================================
-         LEFT PANEL: CHAT STUDIO
+         LEFT PANEL: CHAT STUDIO (SLIM 340PX)
          ==================================================================== -->
     <div id="ai-chat-studio" class="ai-chat-studio">
         <!-- Chat Header -->
         <div class="ai-chat-header">
-            <div class="ai-site-select-group">
-                <span style="font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Site:</span>
-                <select id="ai-site-select" class="ai-site-select" onchange="onSiteChanged()">
-                    {% for s in sites %}
-                    <option value="{{ s.domain }}" {% if selected_site == s.domain %}selected{% endif %}>
-                        🌐 {{ s.domain }}
-                    </option>
-                    {% else %}
-                    <option value="">Nenhum site cadastrado</option>
-                    {% endfor %}
-                </select>
-            </div>
+            <select id="ai-site-select" class="ai-site-select" onchange="onSiteChanged()">
+                {% for s in sites %}
+                <option value="{{ s.domain }}" {% if selected_site == s.domain %}selected{% endif %}>
+                    🌐 {{ s.domain }}
+                </option>
+                {% else %}
+                <option value="">Nenhum site cadastrado</option>
+                {% endfor %}
+            </select>
 
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span class="ai-model-pill" onclick="openModal('modal-ai-settings')" title="Configurar modelo de IA">
-                    🤖 <span id="current-model-badge">{{ current_model.split('/')[-1] }}</span>
-                </span>
-                <button type="button" class="btn btn-outline btn-sm" onclick="clearChat()" title="Limpar conversa" style="padding: 5px 9px;">
-                    🗑️
-                </button>
-            </div>
+            <span class="ai-model-pill" onclick="openModal('modal-ai-settings')" title="Configurar modelo de IA">
+                🤖 <span id="current-model-badge">{{ current_model.split('/')[-1] }}</span>
+            </span>
+
+            <button type="button" class="btn btn-outline btn-sm" onclick="clearChat()" title="Limpar conversa" style="padding: 4px 7px;">
+                🗑️
+            </button>
         </div>
 
         <!-- Chat Thread Messages -->
         <div class="ai-chat-thread" id="ai-chat-thread">
-            <!-- Assistant Welcome Message -->
+            <!-- Assistant Welcome Message (Compact) -->
             <div class="ai-msg assistant">
                 <div class="ai-msg-avatar">🍅</div>
                 <div class="ai-bubble">
-                    <p style="margin-bottom: 8px; font-weight: 700; color: #FFFFFF;">
+                    <p style="margin-bottom: 6px; font-weight: 700; color: #FFFFFF;">
                         Olá! Eu sou o <strong>Agente Tomate IA</strong>.
                     </p>
-                    <p style="color: #CBD5E1; margin-bottom: 10px;">
-                        Posso criar landing pages, adicionar rodapés, botões flutuantes, estilizar CSS e programar diretamente nos arquivos do seu site.
+                    <p style="color: #CBD5E1; margin-bottom: 6px;">
+                        Peça alterações, novos componentes ou páginas completas para o seu site.
                     </p>
-                    <p style="font-size: 12.5px; color: #38BDF8;">
-                        💡 O que você gostaria de criar ou modificar hoje? Experimente uma das sugestões abaixo ou digite seu comando.
+                    <p style="font-size: 11.5px; color: #38BDF8;">
+                        💡 O preview ao lado atualiza em tempo real conforme programamos.
                     </p>
                 </div>
             </div>
@@ -659,19 +793,16 @@
         <div class="ai-chat-footer">
             <div class="ai-chips-scroll">
                 <span class="ai-chip" onclick="quickPrompt('Crie uma landing page moderna com hero, destaques e chamada para ação')">
-                    🎨 Criar Landing Page
+                    🎨 Landing Page
                 </span>
                 <span class="ai-chip" onclick="quickPrompt('Adicione um botão flutuante de WhatsApp no canto inferior direito')">
-                    💬 Botão de WhatsApp
+                    💬 Botão WhatsApp
                 </span>
                 <span class="ai-chip" onclick="quickPrompt('Implemente um modo escuro (Dark Mode) elegante com botão de alternar')">
                     🌙 Dark Mode
                 </span>
                 <span class="ai-chip" onclick="quickPrompt('Otimize as meta tags de SEO e título para mecanismos de busca')">
-                    🚀 Otimizar SEO
-                </span>
-                <span class="ai-chip" onclick="quickPrompt('Analise os arquivos do site e me diga como podemos melhorar')">
-                    🔍 Analisar Site
+                    🚀 SEO
                 </span>
             </div>
 
@@ -679,12 +810,12 @@
                 <textarea 
                     id="ai-prompt-input" 
                     class="ai-textarea" 
-                    placeholder="Peça uma alteração no site ou faça uma pergunta..." 
+                    placeholder="Instrua a IA sobre o site..." 
                     onkeydown="handleTextareaKeydown(event)"
                 ></textarea>
                 <button type="submit" id="ai-submit-btn" class="ai-send-btn">
                     <span id="btn-text">Enviar</span>
-                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="16" height="16">
+                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" width="14" height="14">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
@@ -697,85 +828,80 @@
          RIGHT PANEL: WORKSPACE STUDIO (PREVIEW + CODE + FILES)
          ==================================================================== -->
     <div id="ai-workspace-studio" class="ai-workspace-studio">
-        <!-- Studio Navigation Bar -->
+        <!-- Studio Navigation Bar (Lovable-Style Clean) -->
         <div class="ai-workspace-nav">
-            <div class="ai-tab-group">
-                <button type="button" class="ai-tab-pill active" id="tab-btn-preview" onclick="switchStudioTab('preview')">
+            <!-- Left: Segment Tabs -->
+            <div class="ai-tab-segment">
+                <button type="button" class="ai-tab-segment-btn active" id="tab-btn-preview" onclick="switchStudioTab('preview')">
                     👁️ Preview
                 </button>
-                <button type="button" class="ai-tab-pill" id="tab-btn-code" onclick="switchStudioTab('code')">
-                    💻 Código & Diff
+                <button type="button" class="ai-tab-segment-btn" id="tab-btn-code" onclick="switchStudioTab('code')">
+                    💻 Código
                 </button>
-                <button type="button" class="ai-tab-pill" id="tab-btn-files" onclick="switchStudioTab('files')">
+                <button type="button" class="ai-tab-segment-btn" id="tab-btn-files" onclick="switchStudioTab('files')">
                     📁 Arquivos (<span id="files-count-badge">0</span>)
-                </button>
-                <button type="button" class="ai-tab-pill" id="tab-btn-history" onclick="switchStudioTab('history')">
-                    🕒 Histórico
                 </button>
             </div>
 
-            <!-- Context Tools for Preview Tab -->
-            <div id="tools-preview" class="ai-context-tools">
-                <div class="ai-device-toggle">
-                    <button type="button" class="ai-device-btn active" id="btn-device-desktop" onclick="setDeviceMode('desktop')" title="Visualização Desktop">
-                        🖥️ Desktop
-                    </button>
-                    <button type="button" class="ai-device-btn" id="btn-device-mobile" onclick="setDeviceMode('mobile')" title="Visualização Celular">
-                        📱 Mobile
-                    </button>
-                </div>
-                <button type="button" class="btn btn-outline btn-sm" onclick="refreshPreview()" title="Recarregar Pré-visualização">
-                    🔄 Recarregar
+            <!-- Center: Browser Address Bar -->
+            <div class="ai-browser-address-bar">
+                <span class="ai-address-lock">🔒</span>
+                <span class="ai-address-url" id="studio-url-display">https://{{ selected_site }}</span>
+                <button type="button" class="ai-address-btn" onclick="refreshPreview()" title="Recarregar Preview">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
                 </button>
-                <a id="btn-open-site-external" href="#" target="_blank" class="btn btn-outline btn-sm" title="Abrir site no navegador">
-                    ↗️ Abrir Site
+                <a id="btn-open-site-external" href="http://{{ selected_site }}" target="_blank" class="ai-address-btn" title="Abrir em Nova Aba">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                 </a>
             </div>
 
-            <!-- Context Tools for Code Tab -->
-            <div id="tools-code" class="ai-context-tools" style="display: none;">
-                <select id="code-file-picker" class="ai-site-select" onchange="onCodeFileSelected()" style="font-size: 11.5px; padding: 4px 8px;">
-                    <option value="index.html">index.html</option>
-                </select>
-                <div class="ai-device-toggle">
-                    <button type="button" class="ai-device-btn active" id="btn-mode-diff" onclick="setCodeMode('diff')">
-                        Diff
+            <!-- Right: Device Mode & History -->
+            <div class="ai-workspace-actions">
+                <div class="ai-device-toggle" id="preview-device-toggle">
+                    <button type="button" class="ai-device-btn active" id="btn-device-desktop" onclick="setDeviceMode('desktop')" title="Visualização Desktop">
+                        🖥️
                     </button>
-                    <button type="button" class="ai-device-btn" id="btn-mode-edit" onclick="setCodeMode('edit')">
-                        Editor
+                    <button type="button" class="ai-device-btn" id="btn-device-mobile" onclick="setDeviceMode('mobile')" title="Visualização Celular">
+                        📱
                     </button>
                 </div>
-                <button type="button" id="btn-apply-code-bar" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D;" onclick="applyPendingChanges()">
-                    ✅ Aplicar Alterações
-                </button>
-                <button type="button" id="btn-save-manual-bar" class="btn btn-primary btn-sm" style="display: none; background: #2563EB; border-color: #1D4ED8;" onclick="saveManualCode()">
-                    💾 Salvar Arquivo
+                <button type="button" class="btn btn-outline btn-sm" onclick="switchStudioTab('history')" title="Ver Histórico de Backups" style="font-size: 11px; padding: 3px 8px;">
+                    🕒 Histórico
                 </button>
             </div>
         </div>
 
         <!-- ================================================================
-             VIEWPORT 1: LIVE PREVIEW
+             VIEWPORT 1: LIVE PREVIEW CANVAS
              ================================================================ -->
         <div id="viewport-preview" class="ai-viewport active">
-            <!-- Alert bar if previewing uncommitted AI changes -->
-            <div id="preview-unapplied-banner" class="ai-preview-banner" style="display: none;">
-                <span>
-                    ✨ <strong>Pré-visualização da IA ativa:</strong> Você está vendo o resultado das alterações geradas antes de salvar no disco.
+            <!-- Floating Notification when previewing unapplied AI changes -->
+            <div id="preview-unapplied-banner" class="ai-preview-floating-bar" style="display: none;">
+                <span style="font-size: 11.5px; color: #FDE047; font-weight: 600;">
+                    ✨ Pré-visualizando alterações da IA
                 </span>
-                <div style="display: flex; gap: 8px;">
-                    <button type="button" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D; padding: 3px 10px; font-size: 11.5px;" onclick="applyPendingChanges()">
-                        ✅ Aplicar no Site
-                    </button>
-                    <button type="button" class="btn btn-outline btn-sm" style="padding: 3px 10px; font-size: 11.5px;" onclick="discardPendingPreview()">
-                        Descartar
-                    </button>
-                </div>
+                <button type="button" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D; padding: 2px 8px; font-size: 11px;" onclick="applyPendingChanges()">
+                    ✅ Aplicar no Site
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" style="padding: 2px 8px; font-size: 11px;" onclick="discardPendingPreview()">
+                    Descartar
+                </button>
             </div>
 
             <div class="ai-preview-canvas">
                 <div id="preview-wrapper" class="ai-preview-frame-wrap desktop">
-                    <iframe id="ai-preview-frame" class="ai-preview-iframe" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                    <div class="ai-desktop-window">
+                        <div class="ai-window-header">
+                            <div class="ai-window-dots">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                            </div>
+                            <div class="ai-window-title" id="preview-tab-title">{{ selected_site }} — Ao Vivo</div>
+                            <div style="width: 45px;"></div>
+                        </div>
+                        <iframe id="ai-preview-frame" class="ai-preview-iframe" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+                    </div>
                 </div>
             </div>
         </div>
@@ -785,12 +911,28 @@
              ================================================================ -->
         <div id="viewport-code" class="ai-viewport">
             <div class="ai-code-toolbar">
-                <div style="font-size: 12px; color: #94A3B8;">
-                    Arquivo atual: <strong id="code-current-filename" style="color: #FFFFFF;">index.html</strong>
-                    <span id="code-status-pill" class="badge badge-success" style="margin-left: 8px;">Pronto</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <select id="code-file-picker" class="ai-site-select" onchange="onCodeFileSelected()" style="font-size: 11.5px; padding: 3px 8px; max-width: 160px;">
+                        <option value="index.html">index.html</option>
+                    </select>
+                    <span id="code-status-pill" class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">Pronto</span>
                 </div>
-                <div style="font-size: 12px; color: #CBD5E1;" id="code-stats-info">
-                    Pronto para edição
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div class="ai-device-toggle">
+                        <button type="button" class="ai-device-btn active" id="btn-mode-diff" onclick="setCodeMode('diff')">
+                            Diff
+                        </button>
+                        <button type="button" class="ai-device-btn" id="btn-mode-edit" onclick="setCodeMode('edit')">
+                            Editor
+                        </button>
+                    </div>
+                    <button type="button" id="btn-apply-code-bar" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D; font-size: 11.5px; padding: 3px 10px;" onclick="applyPendingChanges()">
+                        ✅ Aplicar
+                    </button>
+                    <button type="button" id="btn-save-manual-bar" class="btn btn-primary btn-sm" style="display: none; background: #2563EB; border-color: #1D4ED8; font-size: 11.5px; padding: 3px 10px;" onclick="saveManualCode()">
+                        💾 Salvar
+                    </button>
                 </div>
             </div>
 
@@ -805,16 +947,16 @@
              VIEWPORT 3: ARQUIVOS
              ================================================================ -->
         <div id="viewport-files" class="ai-viewport">
-            <div style="padding: 12px 16px; background: #0F172A; border-bottom: 1px solid rgba(255, 255, 255, 0.1); display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 12px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">
-                    Estrutura de Arquivos em <code id="files-site-root" style="color: #38BDF8;">/var/www/</code>
+            <div style="padding: 8px 12px; background: #0F172A; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11.5px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">
+                    Arquivos em <code id="files-site-root" style="color: #38BDF8;">/var/www/</code>
                 </span>
-                <button type="button" class="btn btn-outline btn-sm" onclick="loadSiteFiles()">
-                    🔄 Atualizar Lista
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadSiteFiles()" style="font-size: 11px; padding: 2px 8px;">
+                    🔄 Atualizar
                 </button>
             </div>
             <div class="ai-files-pane" id="files-list-container">
-                <div style="color: #94A3B8; text-align: center; padding: 30px;">Carregando arquivos do site...</div>
+                <div style="color: #94A3B8; text-align: center; padding: 24px; font-size: 12px;">Carregando arquivos do site...</div>
             </div>
         </div>
 
@@ -822,16 +964,16 @@
              VIEWPORT 4: HISTÓRICO
              ================================================================ -->
         <div id="viewport-history" class="ai-viewport">
-            <div style="padding: 12px 16px; background: #0F172A; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-                <span style="font-size: 12px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">
-                    Backups & Pontos de Restauração
+            <div style="padding: 8px 12px; background: #0F172A; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11.5px; font-weight: 700; color: #94A3B8; text-transform: uppercase;">
+                    Backups & Restauração
                 </span>
-                <p style="color: #94A3B8; font-size: 11.5px; margin-top: 4px;">
-                    O TomateCP salva um backup automático antes de cada aplicação da IA.
-                </p>
+                <button type="button" class="btn btn-outline btn-sm" onclick="switchStudioTab('preview')" style="font-size: 11px; padding: 2px 8px;">
+                    ✕ Fechar
+                </button>
             </div>
             <div class="ai-files-pane" id="history-list-container">
-                <div style="color: #94A3B8; text-align: center; padding: 30px;">
+                <div style="color: #94A3B8; text-align: center; padding: 24px; font-size: 12px;">
                     Nenhuma alteração recente registrada nesta sessão.
                 </div>
             </div>
@@ -843,19 +985,19 @@
 <!-- ========================================================================
      MODAL: CONFIGURAÇÃO DE MODELOS & OPENROUTER
      ======================================================================== -->
-<div id="modal-ai-settings" class="modal-backdrop">
-    <div class="modal" style="max-width: 580px;">
+<div id="modal-ai-settings" class="modal-overlay">
+    <div class="modal-card" style="max-width: 520px; width: 95%;">
         <div class="modal-header">
-            <h3 class="modal-title">⚙️ Configurações do Agente de IA</h3>
+            <h3 class="modal-title">⚙️ Configurações do Agente IA</h3>
             <button type="button" class="modal-close" onclick="closeModal('modal-ai-settings')">&times;</button>
         </div>
         <form id="ai-settings-form" onsubmit="handleSaveAISettings(event)">
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
                 <div class="form-group">
-                    <label class="form-label">Provedor de Inteligência Artificial</label>
+                    <label class="form-label">Provedor</label>
                     <select id="setting-provider" class="form-control" onchange="toggleProviderSettings()">
-                        <option value="openrouter" selected>OpenRouter (Nuvem / Modelos Gratuitos e Pagos)</option>
-                        <option value="ollama">Ollama (Servidor Local na sua Rede)</option>
+                        <option value="openrouter" selected>OpenRouter (Nuvem / Modelos Rápidos)</option>
+                        <option value="ollama">Ollama (Servidor Local na Rede)</option>
                     </select>
                 </div>
 
@@ -953,8 +1095,8 @@ function switchMobileView(view) {
 function switchStudioTab(tab) {
     activeStudioTab = tab;
     
-    // Update tab pills
-    document.querySelectorAll(".ai-tab-pill").forEach(p => p.classList.remove("active"));
+    // Update tab segment buttons
+    document.querySelectorAll(".ai-tab-segment-btn").forEach(p => p.classList.remove("active"));
     const activePill = document.getElementById(`tab-btn-${tab}`);
     if (activePill) activePill.classList.add("active");
 
@@ -963,11 +1105,13 @@ function switchStudioTab(tab) {
     const activeVp = document.getElementById(`viewport-${tab}`);
     if (activeVp) activeVp.classList.add("active");
 
-    // Update context tools
-    document.getElementById("tools-preview").style.display = (tab === "preview") ? "flex" : "none";
-    document.getElementById("tools-code").style.display = (tab === "code") ? "flex" : "none";
+    // Show/hide device toggle
+    const deviceToggle = document.getElementById("preview-device-toggle");
+    if (deviceToggle) {
+        deviceToggle.style.display = (tab === "preview") ? "flex" : "none";
+    }
 
-    // If switching to mobile view on small screens, switch to workspace automatically
+    // If switching on small screens, switch to workspace automatically
     if (window.innerWidth <= 1024) {
         switchMobileView("workspace");
     }
@@ -984,14 +1128,17 @@ function onSiteChanged() {
     loadSiteFiles();
     refreshPreview();
     
-    // Notify in chat
-    appendAssistantMessage(`Site alterado para <strong>${escapeHtml(activeSite)}</strong>. O preview e os arquivos foram atualizados.`);
+    appendAssistantMessage(`Site alterado para <strong>${escapeHtml(activeSite)}</strong>. O preview foi atualizado.`);
 }
 
 function updateExternalSiteLink() {
     const link = document.getElementById("btn-open-site-external");
+    const urlDisplay = document.getElementById("studio-url-display");
+    const titleDisplay = document.getElementById("preview-tab-title");
     if (activeSite) {
         link.href = `http://${activeSite}`;
+        urlDisplay.innerText = `https://${activeSite}`;
+        titleDisplay.innerText = `${activeSite} — Ao Vivo`;
         document.getElementById("files-site-root").innerText = `/var/www/${activeSite}/`;
     }
 }
@@ -1025,11 +1172,9 @@ function refreshPreview() {
     // Check if there is an unapplied HTML change
     const pendingHtml = pendingChanges.find(c => c.path.endsWith(".html") || c.path.endsWith(".htm"));
     if (pendingHtml) {
-        // Instant Live preview of AI generation via srcdoc
         frame.srcdoc = pendingHtml.content;
         document.getElementById("preview-unapplied-banner").style.display = "flex";
     } else {
-        // Load directly from server preview endpoint
         document.getElementById("preview-unapplied-banner").style.display = "none";
         frame.removeAttribute("srcdoc");
         frame.src = `/api/ai/preview?site=${encodeURIComponent(activeSite)}&file=index.html&t=${Date.now()}`;
@@ -1040,7 +1185,7 @@ function discardPendingPreview() {
     pendingChanges = [];
     document.getElementById("preview-unapplied-banner").style.display = "none";
     refreshPreview();
-    showToast("Pré-visualização da IA descartada. Recarregando versão do servidor.");
+    showToast("Pré-visualização descartada. Recarregando versão do servidor.");
 }
 
 /* ==========================================================================
@@ -1104,7 +1249,6 @@ async function loadRawFileForEditing(relPath) {
         if (data.success && data.data) {
             currentRawFileContent = data.data.content || "";
             document.getElementById("code-editor-textarea").value = currentRawFileContent;
-            document.getElementById("code-stats-info").innerText = `${data.data.size_fmt || ''} • Modo Edição Direta`;
         }
     } catch (e) {
         showToast("Erro ao carregar arquivo para edição.", "danger");
@@ -1137,19 +1281,17 @@ async function saveManualCode() {
 function onCodeFileSelected() {
     const sel = document.getElementById("code-file-picker");
     currentActiveFile = sel.value;
-    document.getElementById("code-current-filename").innerText = currentActiveFile;
-    
-    // Check if there is a pending change for this file
+
     const change = pendingChanges.find(c => c.path === currentActiveFile);
     if (change) {
         renderDiff(change.diff);
         document.getElementById("code-status-pill").className = "badge badge-warning";
-        document.getElementById("code-status-pill").innerText = change.exists ? "Modificado pela IA" : "Criar Novo";
+        document.getElementById("code-status-pill").innerText = change.exists ? "Modificado" : "Criar Novo";
         document.getElementById("code-editor-textarea").value = change.content;
     } else {
         renderDiff("");
         document.getElementById("code-status-pill").className = "badge badge-success";
-        document.getElementById("code-status-pill").innerText = "Versão Atual do Servidor";
+        document.getElementById("code-status-pill").innerText = "Versão Atual";
         if (currentCodeMode === "edit") {
             loadRawFileForEditing(currentActiveFile);
         }
@@ -1182,44 +1324,41 @@ async function loadSiteFiles() {
                 html += `
                     <div class="ai-file-card" onclick="openFileInStudio('${escapeHtml(item.name)}')">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 16px;">${icon}</span>
+                            <span style="font-size: 14px;">${icon}</span>
                             <div>
-                                <div style="font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; color: #FFFFFF;">
+                                <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #FFFFFF;">
                                     ${escapeHtml(item.name)}
                                 </div>
-                                <div style="font-size: 11px; color: #94A3B8;">${item.size_fmt || ''} • ${item.mtime_fmt || ''}</div>
+                                <div style="font-size: 10.5px; color: #94A3B8;">${item.size_fmt || ''}</div>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 3px 8px;">
+                        <button type="button" class="btn btn-outline btn-sm" style="font-size: 10.5px; padding: 2px 7px;">
                             Abrir
                         </button>
                     </div>
                 `;
             });
 
-            container.innerHTML = html || "<div style='color: #94A3B8; text-align: center; padding: 30px;'>Diretório vazio</div>";
+            container.innerHTML = html || "<div style='color: #94A3B8; text-align: center; padding: 24px; font-size: 12px;'>Diretório vazio</div>";
             if (filePickerHtml) {
                 document.getElementById("code-file-picker").innerHTML = filePickerHtml;
             }
         }
     } catch (e) {
-        container.innerHTML = "<div style='color: #EF4444; text-align: center; padding: 30px;'>Erro ao listar arquivos</div>";
+        container.innerHTML = "<div style='color: #EF4444; text-align: center; padding: 24px;'>Erro ao listar arquivos</div>";
     }
 }
 
 function openFileInStudio(filename) {
     currentActiveFile = filename;
-    document.getElementById("code-current-filename").innerText = filename;
     document.getElementById("code-file-picker").value = filename;
 
     if (filename.endsWith(".html") || filename.endsWith(".htm")) {
-        // Load in preview
         const frame = document.getElementById("ai-preview-frame");
         frame.removeAttribute("srcdoc");
         frame.src = `/api/ai/preview?site=${encodeURIComponent(activeSite)}&file=${encodeURIComponent(filename)}&t=${Date.now()}`;
         switchStudioTab("preview");
     } else {
-        // Load in code editor
         switchStudioTab("code");
         setCodeMode("edit");
     }
@@ -1232,12 +1371,12 @@ function recordHistoryPill(path) {
     item.style.marginBottom = "6px";
     item.innerHTML = `
         <div>
-            <div style="font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; color: #86EFAC;">
+            <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: #86EFAC;">
                 ✓ ${escapeHtml(path)}
             </div>
-            <div style="font-size: 11px; color: #94A3B8;">Backup criado antes de salvar • ${new Date().toLocaleTimeString()}</div>
+            <div style="font-size: 10.5px; color: #94A3B8;">Backup criado • ${new Date().toLocaleTimeString()}</div>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 4px 10px;" onclick="rollbackFile('${escapeHtml(path)}')">
+        <button type="button" class="btn btn-outline btn-sm" style="font-size: 10.5px; padding: 3px 8px;" onclick="rollbackFile('${escapeHtml(path)}')">
             ↩️ Desfazer
         </button>
     `;
@@ -1248,7 +1387,7 @@ function recordHistoryPill(path) {
 }
 
 /* ==========================================================================
-   CHAT ENGINE & LOVABLE-STYLE PROPOSAL HANDLING
+   CHAT ENGINE & LOVABLE-STYLE PROPOSALS
    ========================================================================== */
 function quickPrompt(text) {
     const input = document.getElementById("ai-prompt-input");
@@ -1277,7 +1416,7 @@ async function handleSendMessage(e) {
     // Append User Message
     appendUserMessage(prompt);
     input.value = "";
-    input.style.height = "52px";
+    input.style.height = "44px";
 
     // Show Assistant Loading Indicator
     const thread = document.getElementById("ai-chat-thread");
@@ -1286,9 +1425,9 @@ async function handleSendMessage(e) {
     loadingEl.id = "ai-loading-indicator";
     loadingEl.innerHTML = `
         <div class="ai-msg-avatar">🍅</div>
-        <div class="ai-bubble" style="display: flex; align-items: center; gap: 10px; color: #94A3B8;">
-            <div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
-            <span>O Agente Tomate IA está lendo seus arquivos e gerando o código...</span>
+        <div class="ai-bubble" style="display: flex; align-items: center; gap: 8px; color: #94A3B8; font-size: 12px;">
+            <div class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></div>
+            <span>Gerando código para o site...</span>
         </div>
     `;
     thread.appendChild(loadingEl);
@@ -1315,17 +1454,15 @@ async function handleSendMessage(e) {
             chatHistory.push({ role: "user", content: prompt });
             chatHistory.push({ role: "assistant", content: data.reply });
 
-            // Clean reply of raw code blocks (they will be displayed on the right studio!)
             let cleanReply = data.reply || "";
             if (data.changes && data.changes.length > 0) {
                 cleanReply = cleanReply.replace(/^[\\`#*\s]*(?:[a-zA-Z0-9_-]+\s+)?FILE:[\s\S]*?(?:```|\\```|$)/gim, "").trim();
                 cleanReply = cleanReply.replace(/```[a-z]*\s*```/gi, "").trim();
                 if (!cleanReply) {
-                    cleanReply = "Fiz as alterações solicitadas para o seu site! Você pode conferir o resultado em tempo real no Preview ao lado:";
+                    cleanReply = "Alterações geradas! Confira o preview em tempo real ao lado:";
                 }
             }
 
-            // Create Assistant Message element
             const botMsgEl = document.createElement("div");
             botMsgEl.className = "ai-msg assistant";
 
@@ -1333,38 +1470,30 @@ async function handleSendMessage(e) {
             if (data.changes && data.changes.length > 0) {
                 pendingChanges = data.changes;
 
-                // Populate file picker in studio
                 let pickerHtml = "";
                 data.changes.forEach(ch => {
                     pickerHtml += `<option value="${escapeHtml(ch.path)}">${escapeHtml(ch.path)}</option>`;
                 });
                 document.getElementById("code-file-picker").innerHTML = pickerHtml;
 
-                // Update Code Tab with first change diff
                 currentActiveFile = data.changes[0].path;
-                document.getElementById("code-current-filename").innerText = currentActiveFile;
                 renderDiff(data.changes[0].diff);
 
-                // Build compact summary in chat
                 changesHtml += `<div class="ai-change-summary">`;
-                changesHtml += `<div style="font-size: 11.5px; font-weight: 700; color: #CBD5E1; text-transform: uppercase;">📝 Alterações Geradas pela IA:</div>`;
                 data.changes.forEach((ch, idx) => {
                     changesHtml += `
                         <div class="ai-change-header-row" id="chat-change-row-${idx}">
                             <span class="ai-change-filename">
                                 📄 ${escapeHtml(ch.path)}
-                                <span class="badge ${ch.exists ? 'badge-warning' : 'badge-success'}" style="font-size: 10px; padding: 1px 6px;">
-                                    ${ch.exists ? 'Modificado' : 'Criar Novo'}
-                                </span>
                             </span>
                             <div class="ai-change-actions-row">
-                                <button type="button" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 3px 8px;" onclick="viewChangeInPreview(${idx})">
+                                <button type="button" class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 6px;" onclick="viewChangeInPreview(${idx})">
                                     👁️ Preview
                                 </button>
-                                <button type="button" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 3px 8px;" onclick="viewChangeInCode(${idx})">
+                                <button type="button" class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 6px;" onclick="viewChangeInCode(${idx})">
                                     💻 Código
                                 </button>
-                                <button type="button" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D; font-size: 11px; padding: 3px 8px;" onclick="applySingleChange(${idx})">
+                                <button type="button" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D; font-size: 10px; padding: 2px 6px;" onclick="applySingleChange(${idx})">
                                     ✅ Aplicar
                                 </button>
                             </div>
@@ -1373,7 +1502,6 @@ async function handleSendMessage(e) {
                 });
                 changesHtml += `</div>`;
 
-                // Automatically switch to Preview and refresh with new code!
                 refreshPreview();
                 switchStudioTab("preview");
             }
@@ -1388,14 +1516,14 @@ async function handleSendMessage(e) {
             thread.appendChild(botMsgEl);
 
         } else {
-            appendAssistantMessage(`⚠️ Erro ao processar: ${escapeHtml(data.message || 'Erro desconhecido')}`);
+            appendAssistantMessage(`⚠️ Erro: ${escapeHtml(data.message || 'Erro desconhecido')}`);
         }
 
     } catch (e) {
         if (document.getElementById("ai-loading-indicator")) {
             document.getElementById("ai-loading-indicator").remove();
         }
-        appendAssistantMessage("⚠️ Ocorreu uma falha de conexão com a TV Box.");
+        appendAssistantMessage("⚠️ Falha de comunicação com o servidor.");
     } finally {
         submitBtn.disabled = false;
         thread.scrollTop = thread.scrollHeight;
@@ -1435,7 +1563,6 @@ function viewChangeInCode(idx) {
     const item = pendingChanges[idx];
     if (!item) return;
     currentActiveFile = item.path;
-    document.getElementById("code-current-filename").innerText = currentActiveFile;
     document.getElementById("code-file-picker").value = currentActiveFile;
     renderDiff(item.diff);
     switchStudioTab("code");
@@ -1468,10 +1595,10 @@ async function applyPendingChanges() {
             refreshPreview();
             loadSiteFiles();
         } else {
-            showToast(data.message || "Erro ao aplicar alterações", "danger");
+            showToast(data.message || "Erro ao aplicar", "danger");
         }
     } catch (e) {
-        showToast("Erro na requisição ao aplicar alterações.", "danger");
+        showToast("Erro na requisição ao aplicar.", "danger");
     }
 }
 
@@ -1490,13 +1617,12 @@ async function applySingleChange(idx) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast(`Arquivo '${item.path}' salvo com sucesso!`);
+            showToast(`Arquivo '${item.path}' salvo!`);
             recordHistoryPill(item.path);
             const row = document.getElementById(`chat-change-row-${idx}`);
             if (row) {
-                row.innerHTML = `<span style="font-family: var(--font-mono); font-size: 12px; color: #86EFAC;">✅ '${escapeHtml(item.path)}' salvo com sucesso no servidor!</span>`;
+                row.innerHTML = `<span style="font-family: var(--font-mono); font-size: 11px; color: #86EFAC;">✅ '${escapeHtml(item.path)}' salvo!</span>`;
             }
-            // Remove from pending
             pendingChanges.splice(idx, 1);
             if (!pendingChanges.length) {
                 document.getElementById("preview-unapplied-banner").style.display = "none";
@@ -1590,7 +1716,7 @@ async function handleSaveAISettings(e) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast("Configurações de IA salvas com sucesso!");
+            showToast("Configurações de IA salvas!");
             closeModal("modal-ai-settings");
             document.getElementById("current-model-badge").innerText = model.split("/").pop();
         } else {
