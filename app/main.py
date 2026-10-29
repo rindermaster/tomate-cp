@@ -1003,6 +1003,51 @@ async def api_ai_rollback(request: Request):
 
 
 
+
+@app.get("/api/ai/preview")
+async def api_ai_preview(request: Request, site: str, file: str = "index.html"):
+    require_auth(request, config)
+    site = site.strip()
+    file = file.strip().lstrip("/")
+    root = get_site_root(site)
+    if not root:
+        return HTMLResponse(
+            "<div style='font-family: sans-serif; color: #fff; background: #0F172A; padding: 40px; text-align: center;'>"
+            "<h2 style='color: #EF4444;'>Site não encontrado</h2>"
+            "<p style='color: #94A3B8;'>Verifique se o domínio existe no TomateCP.</p>"
+            "</div>",
+            status_code=404
+        )
+    
+    target = (root / file).resolve()
+    if not target.is_relative_to(root) or not target.exists():
+        fallback = root / "index.html"
+        if fallback.exists():
+            target = fallback
+        else:
+            return HTMLResponse(
+                f"<div style='font-family: sans-serif; color: #fff; background: #0F172A; padding: 40px; text-align: center;'>"
+                f"<h2 style='color: #F59E0B;'>Nenhuma página HTML encontrada em {site}</h2>"
+                f"<p style='color: #94A3B8;'>Peça ao Agente IA para criar a página inicial (index.html) para você!</p>"
+                f"</div>",
+                status_code=404
+            )
+
+    ext = target.suffix.lower()
+    if ext in [".html", ".htm"]:
+        content = target.read_text(encoding="utf-8", errors="replace")
+        return HTMLResponse(content)
+    elif ext in [".css", ".js", ".svg", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".ico"]:
+        return FileResponse(target)
+    else:
+        return HTMLResponse(
+            f"<div style='font-family: sans-serif; color: #fff; background: #0F172A; padding: 40px; text-align: center;'>"
+            f"<h3>Visualização direta disponível para arquivos HTML</h3>"
+            f"<p style='color: #94A3B8;'>Arquivo selecionado: {file}</p>"
+            f"</div>"
+        )
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(config.get("port", 8888))
