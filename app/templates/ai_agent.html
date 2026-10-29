@@ -1456,10 +1456,12 @@ async function handleSendMessage(e) {
 
             let cleanReply = data.reply || "";
             if (data.changes && data.changes.length > 0) {
-                cleanReply = cleanReply.replace(/^[\\`#*\s]*(?:[a-zA-Z0-9_-]+\s+)?FILE:[\s\S]*?(?:```|\\```|$)/gim, "").trim();
+                cleanReply = cleanReply.replace(/```[a-zA-Z0-9_-]*\s*(?:SEARCH|UPDATE|PATCH|FILE):[\s\S]*?(?:```|\Z)/gim, "").trim();
+                cleanReply = cleanReply.replace(/^[\\`#*\s]*(?:SEARCH|UPDATE|PATCH|FILE):[\s\S]*?(?:>>>>>>> REPLACE|```|\Z)/gim, "").trim();
+                cleanReply = cleanReply.replace(/<{5,}\s*SEARCH[\s\S]*?>{5,}\s*REPLACE/gim, "").trim();
                 cleanReply = cleanReply.replace(/```[a-z]*\s*```/gi, "").trim();
                 if (!cleanReply) {
-                    cleanReply = "Alterações geradas! Confira o preview em tempo real ao lado:";
+                    cleanReply = "Alterações geradas com sucesso! Veja o código modificado e o preview ao lado:";
                 }
             }
 
@@ -1485,6 +1487,8 @@ async function handleSendMessage(e) {
                         <div class="ai-change-header-row" id="chat-change-row-${idx}">
                             <span class="ai-change-filename">
                                 📄 ${escapeHtml(ch.path)}
+                                ${ch.edit_mode === "patch" ? `<span class="badge" style="background: rgba(14,165,233,0.15); color: #38bdf8; font-size: 9.5px; margin-left: 6px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Edição Pontual</span>` : `<span class="badge" style="background: rgba(168,85,247,0.15); color: #c084fc; font-size: 9.5px; margin-left: 6px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Arquivo Completo</span>`}
+                                ${ch.has_lazy_placeholder ? `<span class="badge" style="background: rgba(239,68,68,0.2); color: #ef4444; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">⚠️ Verifique</span>` : ""}
                             </span>
                             <div class="ai-change-actions-row">
                                 <button type="button" class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 6px;" onclick="viewChangeInPreview(${idx})">

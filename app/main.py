@@ -39,7 +39,7 @@ from app.sites import (
 from app.ai_agent import (
     POPULAR_MODELS, mask_api_key, get_site_root, scan_site_files,
     read_text_safe, write_text_safe, backup_file, rollback_file,
-    generate_diff, call_llm, extract_file_proposals
+    generate_diff, call_llm, extract_file_proposals, process_ai_proposals
 )
 
 from app.auth import (
@@ -872,45 +872,59 @@ async def api_ai_chat(request: Request):
     common_files = ["index.html", "index.php", "style.css", "styles.css", "main.css", "app.js", "main.js", "script.js"]
     loaded_contents = []
     total_bytes = 0
-    max_total_bytes = 25000
+    max_total_bytes = 250000
 
     for cf in common_files:
         if total_bytes >= max_total_bytes:
             break
-        text = read_text_safe(root, cf, max_bytes=8000)
+        text = read_text_safe(root, cf, max_bytes=150000)
         if text:
-            loaded_contents.append(f"--- INÍCIO DE {cf} ---\n{text}\n--- FIM DE {cf} ---")
-            total_bytes += len(text.encode("utf-8"))
+            file_size = len(text.encode("utf-8"))
+            loaded_contents.append(f"--- INÍCIO DE {cf} ({file_size} bytes - COMPLETO) ---\n{text}\n--- FIM DE {cf} ---")
+            total_bytes += file_size
 
     for f in site_files:
         p = f["path"]
-        if p not in common_files and p.lower() in prompt.lower() and total_bytes < max_total_bytes:
-            text = read_text_safe(root, p, max_bytes=10000)
+        if p not in common_files and (p.lower() in prompt.lower() or "seo" in prompt.lower() and p in ("robots.txt", "sitemap.xml")) and total_bytes < max_total_bytes:
+            text = read_text_safe(root, p, max_bytes=100000)
             if text:
-                loaded_contents.append(f"--- INÍCIO DE {p} ---\n{text}\n--- FIM DE {p} ---")
-                total_bytes += len(text.encode("utf-8"))
+                file_size = len(text.encode("utf-8"))
+                loaded_contents.append(f"--- INÍCIO DE {p} ({file_size} bytes - COMPLETO) ---\n{text}\n--- FIM DE {p} ---")
+                total_bytes += file_size
 
     context_str = "\n\n".join(loaded_contents) if loaded_contents else "(Nenhum arquivo comum encontrado ainda. Você pode criar novos arquivos!)"
 
     system_prompt = f"""Você é o Agente Tomate IA, o assistente programador web do painel TomateCP.
-Você roda diretamente na Box Linux do usuário gerenciando o site '{site}'.
-Você é um desenvolvedor full-stack experiente, focado em código limpo, moderno, responsivo e sem dependências pesadas desnecessárias.
+Você roda diretamente na Box Linux do usuário e tem ACESSO DIRETO COMPLETO aos arquivos do site '{site}'.
 
-Arquivos existentes no site '{site}':
+ARQUIVOS DO SITE:
 {files_summary}
 
-Conteúdo dos arquivos atuais do site:
+CÓDIGO-FONTE COMPLETO DOS ARQUIVOS ATUAIS (Carregados diretamente do disco):
 {context_str}
 
-DIRETRIZES DE RESPOSTA:
-1. Explique brevemente o que você fez ou propôs de forma educada, clara e direta em Português (Brasil).
-2. Se você criar ou alterar arquivos, você DEVE OBRIGATORIAMENTE formatar o arquivo completo dentro de um bloco no seguinte formato exato:
-```FILE: caminho/do/arquivo.ext
-conteudo completo do arquivo aqui
-```
-3. NUNCA coloque código parcial ou com reticências dentro do bloco ```FILE: ...```. Forneça o arquivo COMPLETO para que ele possa ser salvo diretamente no servidor.
-4. Você pode sugerir múltiplos blocos ```FILE: ...``` se precisar alterar HTML, CSS e JS juntos.
-5. Seja objetivo, criativo e priorize alta qualidade estética e usabilidade."""
+REGRAS ESSENCIAIS DE EDIÇÃO (LEIA COM ATENÇÃO):
+1. VOCÊ JÁ TEM O CÓDIGO COMPLETO ACIMA! Nunca peça ao usuário para enviar, colar ou compartilhar o código se ele já estiver listado acima. Você tem acesso total de leitura e escrita.
+2. COMO MODIFICAR CÓDIGO EXISTENTE (SEM APAGAR O RESTO):
+   Para alterar trechos específicos (ex: meta tags de SEO, títulos, cores, novos botões, scripts, seções):
+   USE O FORMATO SEARCH/REPLACE. Isso altera APENAS o trecho indicado e MANTÉM 100% do resto do arquivo intacto:
+   ```SEARCH: caminho/do/arquivo.ext
+   <<<<<<< SEARCH
+   código exato atual a ser substituído
+   =======
+   novo código que entra no lugar
+   >>>>>>> REPLACE
+   ```
+   Você pode incluir múltiplos blocos SEARCH/REPLACE se precisar modificar mais de um trecho.
+3. COMO CRIAR OU REESCREVER ARQUIVOS COMPLETOS:
+   Para arquivos novos (ex: robots.txt, sitemap.xml, nova_pagina.html) ou para arquivos pequenos que você queira reescrever por inteiro:
+   ```FILE: caminho/do/arquivo.ext
+   conteúdo completo do arquivo
+   ```
+   NUNCA use \"<!-- resto continua igual -->\" dentro de ```FILE: ...```. Se for alterar apenas uma parte, USE A REGRA 2 (SEARCH/REPLACE).
+4. REGRA OBRIGATÓRIA: Toda vez que o usuário pedir uma melhoria, criação ou alteração de código, você DEVE OBRIGATORIAMENTE FORNECER o bloco de código (SEARCH/REPLACE ou FILE:). NUNCA responda apenas com explicações teóricas sem fornecer os blocos de código concretos para aplicar.
+5. Explique brevemente o que você fez em Português (Brasil).
+6. Escreva código moderno, limpo, responsivo, sem dependências pesadas e com alto padrão de design (UI/UX de excelência)."""
 
     cfg = load_config()
     try:
@@ -918,25 +932,13 @@ conteudo completo do arquivo aqui
     except Exception as e:
         return JSONResponse(status_code=500, content={"success": False, "message": f"Erro na IA: {str(e)}"})
 
-    proposals = extract_file_proposals(reply)
-    changes = []
-    for prop in proposals:
-        rel = prop["path"].lstrip("/")
-        new_text = prop["content"]
-        old_text = read_text_safe(root, rel) or ""
-        diff_text = generate_diff(old_text, new_text, rel)
-        changes.append({
-            "path": rel,
-            "content": new_text,
-            "diff": diff_text,
-            "is_new": not bool(old_text),
-            "exists": bool(old_text)
-        })
+    changes = process_ai_proposals(reply, root)
 
     return {
         "success": True,
         "reply": reply,
-        "changes": changes
+        "changes": changes,
+        "total_context_bytes": total_bytes
     }
 
 

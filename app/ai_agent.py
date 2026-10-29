@@ -124,6 +124,8 @@ def scan_site_files(root: Path, max_files: int = 60) -> List[Dict[str, Any]]:
         rel = p.relative_to(root)
         if any(part in IGNORED_DIRS for part in rel.parts):
             continue
+        if p.name.endswith(".min.js") or p.name.endswith(".min.css") or p.name.endswith(".map"):
+            continue
         if p.suffix.lower() in ALLOWED_EXTENSIONS:
             try:
                 results.append({
@@ -147,7 +149,7 @@ def scan_site_files(root: Path, max_files: int = 60) -> List[Dict[str, Any]]:
     results.sort(key=priority_sort)
     return results
 
-def read_text_safe(root: Path, rel_path: str, max_bytes: int = 40000) -> Optional[str]:
+def read_text_safe(root: Path, rel_path: str, max_bytes: int = 150000) -> Optional[str]:
     target = (root / rel_path).resolve()
     # Path traversal protection
     if not str(target).startswith(str(root.resolve())):
@@ -331,3 +333,173 @@ def extract_file_proposals(llm_output: str) -> List[Dict[str, str]]:
         })
 
     return proposals
+
+
+LAZY_PLACEHOLDER_REGEX = re.compile(
+    r"(?:<!--|/\*|//|\.\.\.)\s*(?:rest|restante|demais|continua|permanece|resto da página|rest of code)\b",
+    re.IGNORECASE
+)
+
+def apply_search_replace(original_text: str, search: str, replace: str) -> tuple[str, bool]:
+    """
+    Aplica substituição cirúrgica com 4 níveis de tolerância:
+    1. Match exato
+    2. Normalização CRLF/LF
+    3. Tolerância a espaços no fim de linha (rstrip)
+    4. Tolerância a indentação (strip)
+    """
+    if not search:
+        return original_text, False
+
+    # 1. Match exato
+    if search in original_text:
+        return original_text.replace(search, replace, 1), True
+
+    # 2. Normalização de quebras de linha
+    norm_orig = original_text.replace("\r\n", "\n")
+    norm_search = search.replace("\r\n", "\n")
+    norm_replace = replace.replace("\r\n", "\n")
+    if norm_search in norm_orig:
+        return norm_orig.replace(norm_search, norm_replace, 1), True
+
+    # 3. Tolerância a espaços em branco no final de linhas
+    search_lines = [l.rstrip() for l in norm_search.split("\n")]
+    orig_lines = [l.rstrip() for l in norm_orig.split("\n")]
+    actual_orig_lines = norm_orig.split("\n")
+    
+    n_search = len(search_lines)
+    if n_search <= len(orig_lines):
+        for i in range(len(orig_lines) - n_search + 1):
+            if orig_lines[i:i + n_search] == search_lines:
+                before = actual_orig_lines[:i]
+                after = actual_orig_lines[i + n_search:]
+                res = "\n".join(before + [norm_replace] + after)
+                return res, True
+
+    # 4. Tolerância a indentação geral
+    stripped_search = [l.strip() for l in search_lines if l.strip()]
+    if stripped_search:
+        n_strip = len(stripped_search)
+        for i in range(len(orig_lines) - n_strip + 1):
+            sub = [orig_lines[i + k].strip() for k in range(n_strip)]
+            if sub == stripped_search:
+                before = actual_orig_lines[:i]
+                after = actual_orig_lines[i + n_strip:]
+                res = "\n".join(before + [norm_replace] + after)
+                return res, True
+
+    return original_text, False
+
+def process_ai_proposals(reply: str, root: Path) -> List[Dict[str, Any]]:
+    """
+    Extrai e processa tanto edições pontuais (SEARCH/REPLACE) quanto criação/substituição total (FILE:).
+    Garante que arquivos existentes não sejam corrompidos nem apagados.
+    """
+    changes_by_file: Dict[str, Dict[str, Any]] = {}
+
+    # 1. Procurar blocos SEARCH/UPDATE/PATCH
+    block_pattern = re.compile(
+        r"[\\`#*\s]*(?:SEARCH|UPDATE|PATCH):\s*([^\s`\n]+)([\s\S]*?)(?=(?:```[a-zA-Z0-9_-]*\r?\n[\\`#*\s]*(?:SEARCH|UPDATE|PATCH|FILE):|[\\`#*\s]*(?:SEARCH|UPDATE|PATCH|FILE):|\Z))",
+        re.IGNORECASE
+    )
+    pair_pattern = re.compile(
+        r"(?:<{5,}\s*SEARCH\r?\n)?([\s\S]*?)\r?\n={5,}\r?\n([\s\S]*?)(?=\r?\n>{5,}\s*REPLACE|\r?\n```|\Z)",
+        re.IGNORECASE
+    )
+
+    for m in block_pattern.finditer(reply):
+        path = m.group(1).strip("`* :").lstrip("/")
+        body = m.group(2)
+        pairs = list(pair_pattern.finditer(body))
+        if not pairs:
+            continue
+        if path not in changes_by_file:
+            changes_by_file[path] = {"type": "patch", "pairs": []}
+        for p in pairs:
+            s_text = p.group(1)
+            r_text = p.group(2)
+            # Remove any trailing fence if captured
+            r_text = re.sub(r"\n```\s*$", "", r_text)
+            if s_text.strip() and r_text.strip():
+                changes_by_file[path]["pairs"].append({
+                    "search": s_text,
+                    "replace": r_text
+                })
+
+    # Fallback para <<<<<<< SEARCH arquivo.ext
+    generic_sr = re.compile(
+        r"<{5,}\s*SEARCH\s+([^\s\n]+)\r?\n([\s\S]*?)\r?\n={5,}\r?\n([\s\S]*?)\r?\n>{5,}\s*REPLACE",
+        re.IGNORECASE
+    )
+    for m in generic_sr.finditer(reply):
+        path = m.group(1).strip("`* :").lstrip("/")
+        if path not in changes_by_file:
+            changes_by_file[path] = {"type": "patch", "pairs": []}
+        changes_by_file[path]["pairs"].append({
+            "search": m.group(2),
+            "replace": m.group(3)
+        })
+
+    # 2. Procurar blocos FILE: (para novos arquivos ou regravação completa)
+    file_pattern = re.compile(
+        r"[\\`#*\s]*(?:CREATE\s+)?FILE:\s*([^\s`\n]+)\r?\n([\s\S]*?)(?=\r?\n[\\`#*\s]*(?:FILE:|SEARCH:|UPDATE:|PATCH:|$)|```|\Z)",
+        re.IGNORECASE
+    )
+    for m in file_pattern.finditer(reply):
+        path = m.group(1).strip("`* :").lstrip("/")
+        content = m.group(2).strip("\r\n")
+        content = re.sub(r"\n```\s*$", "", content)
+        if path not in changes_by_file:
+            changes_by_file[path] = {
+                "type": "file",
+                "content": content
+            }
+
+    results = []
+    for rel_path, data in changes_by_file.items():
+        old_text = read_text_safe(root, rel_path, max_bytes=250000) or ""
+
+        if data["type"] == "patch":
+            current_text = old_text
+            matched_count = 0
+            failed_count = 0
+            for pair in data["pairs"]:
+                current_text, ok = apply_search_replace(current_text, pair["search"], pair["replace"])
+                if ok:
+                    matched_count += 1
+                else:
+                    failed_count += 1
+
+            diff_text = generate_diff(old_text, current_text, rel_path)
+            results.append({
+                "path": rel_path,
+                "content": current_text,
+                "diff": diff_text,
+                "is_new": not bool(old_text),
+                "exists": bool(old_text),
+                "edit_mode": "patch",
+                "matched_blocks": matched_count,
+                "failed_blocks": failed_count,
+                "has_lazy_placeholder": False
+            })
+        else:
+            new_text = data["content"]
+            has_lazy = False
+            if old_text and len(old_text) > 400:
+                if LAZY_PLACEHOLDER_REGEX.search(new_text) or (len(new_text) < len(old_text) * 0.35 and len(new_text) < 1000):
+                    has_lazy = True
+
+            diff_text = generate_diff(old_text, new_text, rel_path)
+            results.append({
+                "path": rel_path,
+                "content": new_text,
+                "diff": diff_text,
+                "is_new": not bool(old_text),
+                "exists": bool(old_text),
+                "edit_mode": "full",
+                "matched_blocks": 1,
+                "failed_blocks": 0,
+                "has_lazy_placeholder": has_lazy
+            })
+
+    return results
