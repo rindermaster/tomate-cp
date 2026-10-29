@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}Gerenciador de Arquivos & Código — {{ panel_name }}{% endblock %}
+{% block header_title %}Arquivos & Código{% endblock %}
 
 {% block content %}
 <!-- CodeMirror Styles (Zero External Dependencies) -->
@@ -14,11 +15,16 @@
   background: #FFFFFF !important;
   border: 1px solid #E2E8F0 !important;
   border-radius: 12px !important;
-  overflow: hidden !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
   position: relative !important;
   min-height: 440px !important;
   transition: border-color 0.2s, background-color 0.2s !important;
+}
+
+.file-table {
+  min-width: 580px !important;
 }
 
 .file-table-wrapper.drag-over {

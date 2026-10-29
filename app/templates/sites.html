@@ -6,11 +6,13 @@
 {% block header_actions %}
 <button class="btn btn-outline btn-sm" onclick="openDnsModal('')" title="Instruções gerais de apontamento DNS">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
-    Instruções de DNS
+    <span class="btn-text-desktop">Instruções de DNS</span>
+    <span class="btn-text-mobile">DNS</span>
 </button>
 <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-site')">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Criar Novo Site
+    <span class="btn-text-desktop">Criar Novo Site</span>
+    <span class="btn-text-mobile">Novo</span>
 </button>
 {% endblock %}
 

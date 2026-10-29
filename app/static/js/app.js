@@ -237,7 +237,7 @@ function showToast(message, type = "success") {
     if (!container) {
         container = document.createElement("div");
         container.id = "toast-container";
-        container.style.cssText = "position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px;";
+        container.className = "toast-container-root";
         document.body.appendChild(container);
     }
 
@@ -258,3 +258,43 @@ function showToast(message, type = "success") {
         setTimeout(() => toast.remove(), 250);
     }, 3500);
 }
+
+/**
+ * Mobile Drawer Navigation (UI/UX Pro Max)
+ */
+function toggleMobileDrawer(open) {
+    const sidebar = document.getElementById("sidebar-drawer") || document.querySelector(".sidebar");
+    const backdrop = document.getElementById("sidebar-backdrop");
+    if (!sidebar) return;
+
+    const isOpen = sidebar.classList.contains("open");
+    const shouldOpen = open !== undefined ? open : !isOpen;
+
+    if (shouldOpen) {
+        sidebar.classList.add("open");
+        if (backdrop) backdrop.classList.add("active");
+        document.body.style.overflow = "hidden";
+    } else {
+        sidebar.classList.remove("open");
+        if (backdrop) backdrop.classList.remove("active");
+        document.body.style.overflow = "";
+    }
+}
+
+// Global listeners for drawer & mobile touch
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        toggleMobileDrawer(false);
+    }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Close drawer when clicking any nav link on mobile
+    document.querySelectorAll(".sidebar .nav-link").forEach(link => {
+        link.addEventListener("click", () => {
+            if (window.innerWidth <= 768) {
+                toggleMobileDrawer(false);
+            }
+        });
+    });
+});
