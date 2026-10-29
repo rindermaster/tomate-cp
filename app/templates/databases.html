@@ -350,7 +350,7 @@ async function runSqlConsoleQuery() {
                 data.rows.forEach(r => {
                     html += '<tr>';
                     data.columns.forEach(c => {
-                        html += `<td style="padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: var(--font-mono);">${r[c] !== null ? r[c] : '<em style="color: #64748B;">NULL</em>'}</td>`;
+                        html += `<td style="padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: var(--font-mono);">${r[c] !== null ? r[c] : '<em style="color: #94A3B8; font-weight: 600;">NULL</em>'}</td>`;
                     });
                     html += '</tr>';
                 });

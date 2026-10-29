@@ -104,23 +104,29 @@
 <!-- Modal: Restaurar a partir de Upload -->
 <div id="modal-restore-upload" class="modal-overlay">
     <div class="modal-card">
-        <div class="modal-header">
-            <h3 class="modal-title">Restaurar Snapshot (.tar.gz)</h3>
+        <div class="modal-header" style="background: rgba(180, 83, 9, 0.18); border-bottom: 1px solid rgba(245, 158, 11, 0.35);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 34px; height: 34px; border-radius: 8px; background: #D97706; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.45);">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </div>
+                <h3 class="modal-title" style="color: #FFFFFF; font-weight: 700; font-size: 16px;">Restaurar Snapshot (.tar.gz)</h3>
+            </div>
             <button class="modal-close" onclick="closeModal('modal-restore-upload')">&times;</button>
         </div>
         <form action="/api/backups/restore" method="POST" enctype="multipart/form-data">
             <div class="modal-body">
-                <div class="alert alert-warning" style="margin-bottom: 16px;">
-                    ⚠️ <strong>Atenção:</strong> A restauração irá sobrescrever os arquivos e configurações correspondentes do Nginx com os dados contidos no backup.
+                <div class="alert alert-warning" style="margin-bottom: 16px; background: rgba(180, 83, 9, 0.28) !important; border: 1px solid #F59E0B !important; color: #FFFFFF !important;">
+                    <svg width="20" height="20" fill="none" stroke="#FDE047" stroke-width="2.2" viewBox="0 0 24 24" style="flex-shrink: 0;"><path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                    <span style="color: #FFFFFF; font-weight: 600;">Atenção: A restauração irá sobrescrever os arquivos e configurações correspondentes do Nginx com os dados contidos no backup.</span>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="backup-file">Selecione o arquivo de backup (.tar.gz)</label>
                     <input type="file" id="backup-file" name="backup_file" accept=".tar.gz,.gz" class="form-control" required>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="closeModal('modal-restore-upload')">Cancelar</button>
-                <button type="submit" class="btn btn-danger">Confirmar Restauração</button>
+            <div class="modal-footer" style="background: rgba(15, 23, 42, 0.7); border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <button type="button" class="btn btn-outline" style="color: #FFFFFF !important; font-weight: 600; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.25);" onclick="closeModal('modal-restore-upload')">Cancelar</button>
+                <button type="submit" class="btn btn-danger" style="background: #DC2626 !important; color: #FFFFFF !important; font-weight: 700; border: 1px solid #B91C1C; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.45);">Confirmar Restauração</button>
             </div>
         </form>
     </div>

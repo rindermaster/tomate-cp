@@ -313,24 +313,29 @@
 <!-- Modal: Confirmar Exclusão -->
 <div id="modal-delete-site" class="modal-overlay">
     <div class="modal-card">
-        <div class="modal-header">
-            <h3 class="modal-title">Confirmar Exclusão</h3>
+        <div class="modal-header" style="background: rgba(185, 28, 28, 0.18); border-bottom: 1px solid rgba(239, 68, 68, 0.35);">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 34px; height: 34px; border-radius: 8px; background: #DC2626; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.45);">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </div>
+                <h3 class="modal-title" style="color: #FFFFFF; font-weight: 700; font-size: 16px;">Confirmar Exclusão</h3>
+            </div>
             <button class="modal-close" onclick="closeModal('modal-delete-site')">&times;</button>
         </div>
         <form action="/api/sites/delete" method="POST">
             <input type="hidden" id="delete-domain-input" name="domain" value="">
             <div class="modal-body">
-                <p style="font-size: 14px; margin-bottom: 16px;">
-                    Tem certeza de que deseja remover o site <strong id="delete-domain-name" style="color: #FFFFFF;"></strong> do Nginx?
+                <p style="font-size: 14.5px; color: #FFFFFF; margin-bottom: 16px; line-height: 1.5;">
+                    Tem certeza de que deseja remover o site <strong id="delete-domain-name" style="color: #FFFFFF; font-family: var(--font-mono); background: rgba(255,255,255,0.12); padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2);"></strong> do Nginx?
                 </p>
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-danger); cursor: pointer;">
-                    <input type="checkbox" name="delete_files" value="true">
-                    Excluir também os arquivos da pasta web (/var/www)
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FECACA; background: rgba(185, 28, 28, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); padding: 10px 14px; border-radius: 8px; cursor: pointer;">
+                    <input type="checkbox" name="delete_files" value="true" style="width: 16px; height: 16px; accent-color: #DC2626; cursor: pointer;">
+                    <span style="font-weight: 600; color: #FFFFFF;">Excluir também os arquivos da pasta web (/var/www)</span>
                 </label>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline" onclick="closeModal('modal-delete-site')">Cancelar</button>
-                <button type="submit" class="btn btn-danger">Excluir Site</button>
+            <div class="modal-footer" style="background: rgba(15, 23, 42, 0.7); border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <button type="button" class="btn btn-outline" style="color: #FFFFFF !important; font-weight: 600; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.25);" onclick="closeModal('modal-delete-site')">Cancelar</button>
+                <button type="submit" class="btn btn-danger" style="background: #DC2626 !important; color: #FFFFFF !important; font-weight: 700; border: 1px solid #B91C1C; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.45);">Excluir Site</button>
             </div>
         </form>
     </div>
