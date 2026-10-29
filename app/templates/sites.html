@@ -111,6 +111,10 @@
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 16 4-4 4 4"/></svg>
                             Deploy
                         </a>
+                        <button class="btn btn-outline btn-sm" onclick="openGitModal('{{ site.domain }}')" title="Configurar Git Webhook">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
+                            Git
+                        </button>
                         <button class="btn btn-danger btn-sm" onclick="confirmDeleteSite('{{ site.domain }}')" title="Excluir site">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                         </button>
@@ -221,6 +225,7 @@
                         <option value="static">Site Estático (HTML, CSS, JS, React/Vue build)</option>
                         <option value="proxy">Proxy Reverso (Node.js, Python, Docker, Porta local)</option>
                         <option value="php">PHP-FPM (Scripts PHP, WordPress, Laravel)</option>
+                        <option value="wordpress">🪄 WordPress Lite 1-Clique (Instalação Automática)</option>
                     </select>
                 </div>
 
@@ -250,6 +255,52 @@
                 <button type="submit" class="btn btn-primary">Criar e Ativar Site</button>
             </div>
         </form>
+    </div>
+</div>
+
+
+<!-- Modal: Git Webhook & Deploy -->
+<div id="modal-git-site" class="modal-overlay">
+    <div class="modal-card" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="git-modal-title">Git & Webhooks</h3>
+            <button class="modal-close" onclick="closeModal('modal-git-site')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="git-site-domain" value="">
+            <div class="form-group">
+                <label class="form-label" for="git-repo-url">URL do Repositório Git (GitHub / GitLab)</label>
+                <input type="text" id="git-repo-url" class="form-control" placeholder="https://github.com/usuario/meu-site.git">
+                <div class="form-hint">HTTPS público ou com token de acesso pessoal.</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="git-branch">Branch de Produção</label>
+                <input type="text" id="git-branch" class="form-control" value="main">
+            </div>
+
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid var(--color-border); border-radius: 8px; padding: 14px; margin-top: 14px;">
+                <label class="form-label" style="margin-bottom: 4px;">Payload URL para o GitHub Webhook:</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="git-webhook-url" class="form-control" readonly style="font-family: var(--font-mono); font-size: 11px; background: #0A0F1D;" value="">
+                    <button type="button" class="btn btn-outline btn-sm" onclick="copyText(document.getElementById('git-webhook-url').value, 'URL do Webhook copiada!')">
+                        Copiar
+                    </button>
+                </div>
+                <div style="font-size: 11px; color: var(--color-text-subtle); margin-top: 6px;">
+                    No GitHub: vá em <em>Settings &gt; Webhooks &gt; Add webhook</em>, cole esta URL e selecione <em>Just the push event</em>.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: space-between;">
+            <button type="button" class="btn btn-outline" id="btn-git-pull" onclick="triggerGitPull()">
+                ⬇️ Puxar Agora (Git Pull)
+            </button>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-git-site')">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="saveGitConfig()">Salvar e Clonar</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -363,6 +414,73 @@ function copyText(val, successMsg) {
     }).catch(() => {
         showToast("Não foi possível copiar.", "danger");
     });
+}
+
+
+function openGitModal(domain) {
+    document.getElementById("git-site-domain").value = domain;
+    document.getElementById("git-modal-title").innerText = `Git & Webhooks: ${domain}`;
+    
+    const token = "live_" + Math.random().toString(36).substring(2, 10);
+    const origin = window.location.origin;
+    document.getElementById("git-webhook-url").value = `${origin}/api/webhooks/git?domain=${encodeURIComponent(domain)}&token=${token}`;
+    
+    openModal("modal-git-site");
+}
+
+async function triggerGitPull() {
+    const domain = document.getElementById("git-site-domain").value;
+    const btn = document.getElementById("btn-git-pull");
+    btn.disabled = true;
+    btn.innerText = "Puxando commits...";
+    showToast("Executando git pull...", "neutral");
+
+    try {
+        const formData = new FormData();
+        formData.append("domain", domain);
+        const res = await fetch("/api/git/pull", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+        } else {
+            showToast(data.message, "danger");
+        }
+    } catch (e) {
+        showToast("Erro ao executar git pull.", "danger");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "⬇️ Puxar Agora (Git Pull)";
+    }
+}
+
+async function saveGitConfig() {
+    const domain = document.getElementById("git-site-domain").value;
+    const repoUrl = document.getElementById("git-repo-url").value.trim();
+    const branch = document.getElementById("git-branch").value.trim() || "main";
+
+    if (!repoUrl) {
+        showToast("Informe a URL do repositório.", "danger");
+        return;
+    }
+
+    showToast("Clonando / Vinculando repositório Git...", "neutral");
+    try {
+        const formData = new FormData();
+        formData.append("domain", domain);
+        formData.append("repo_url", repoUrl);
+        formData.append("branch", branch);
+
+        const res = await fetch("/api/git/setup", { method: "POST", body: formData });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            closeModal("modal-git-site");
+        } else {
+            showToast(data.message, "danger");
+        }
+    } catch (e) {
+        showToast("Erro na configuração do Git.", "danger");
+    }
 }
 
 function confirmDeleteSite(domain) {

@@ -298,3 +298,100 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 });
+
+/**
+ * ⚡ Ações Rápidas de Sistema (UI/UX Pro Max)
+ */
+async function triggerDropCaches() {
+    showToast("Limpando cache de memória RAM...", "neutral");
+    try {
+        const res = await fetch("/api/system/drop-caches", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            // If on dashboard, force stats update
+            if (typeof updateStats === "function") {
+                setTimeout(updateStats, 400);
+            }
+        } else {
+            showToast(data.message, "danger");
+        }
+    } catch (e) {
+        showToast("Erro ao otimizar memória.", "danger");
+    }
+}
+
+async function triggerRebootConfirm() {
+    if (!confirm("⚠️ Tem certeza de que deseja REINICIAR a TV Box / Servidor agora? O painel ficará inacessível por cerca de 30 a 60 segundos.")) {
+        return;
+    }
+    showToast("Enviando comando de reinicialização...", "warning");
+    try {
+        const res = await fetch("/api/system/reboot", { method: "POST" });
+        const data = await res.json();
+        showToast(data.message, "success");
+        setTimeout(() => {
+            document.body.innerHTML = `<div style="height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #0F172A; color: #FFFFFF; font-family: sans-serif; text-align: center; padding: 24px;"><h2 style="font-size: 24px; margin-bottom: 12px;">🔄 Dispositivo Reiniciando...</h2><p style="color: #94A3B8; max-width: 400px; line-height: 1.6;">A TV Box está reinicializando os serviços. Esta página tentará reconectar automaticamente em 30 segundos.</p></div>`;
+            setTimeout(() => location.reload(), 30000);
+        }, 1500);
+    } catch (e) {
+        showToast("Erro ao solicitar reinicialização.", "danger");
+    }
+}
+
+/**
+ * 💻 Web Terminal Client
+ */
+function fillTerminalCommand(cmd) {
+    const input = document.getElementById("terminal-input");
+    if (input) {
+        input.value = cmd;
+        handleTerminalSubmit(new Event("submit"));
+    }
+}
+
+async function handleTerminalSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const input = document.getElementById("terminal-input");
+    const output = document.getElementById("terminal-output");
+    const btn = document.getElementById("btn-terminal-run");
+    if (!input || !output) return;
+
+    const command = input.value.trim();
+    if (!command) return;
+
+    input.value = "";
+    if (btn) btn.disabled = true;
+
+    // Append command to terminal
+    output.innerText += `\n\nroot@tomate:~# ${command}`;
+    output.scrollTop = output.scrollHeight;
+
+    try {
+        const formData = new FormData();
+        formData.append("command", command);
+
+        const res = await fetch("/api/system/terminal/exec", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+
+        if (data.stdout) {
+            output.innerText += `\n${data.stdout.trim()}`;
+        }
+        if (data.stderr) {
+            output.innerText += `\n⚠️ [stderr]: ${data.stderr.trim()}`;
+        }
+        if (!data.stdout && !data.stderr) {
+            output.innerText += `\n(Comando executado sem retorno, código de saída: ${data.exit_code})`;
+        }
+        output.innerText += `\n[Duração: ${data.duration_ms}ms]`;
+    } catch (err) {
+        output.innerText += `\n❌ Erro de comunicação com o servidor: ${err}`;
+    } finally {
+        if (btn) btn.disabled = false;
+        output.scrollTop = output.scrollHeight;
+        input.focus();
+    }
+}

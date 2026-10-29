@@ -22,6 +22,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.system import get_full_telemetry, is_nginx_active
+
+from app.system import drop_caches, reboot_system, execute_terminal_command
+from app.backup import list_backups, create_backup, delete_backup, restore_backup, BACKUP_DIR
+from app.databases import (
+    list_sqlite_databases, create_sqlite_database, execute_sqlite_query,
+    is_mariadb_active, list_mariadb_databases, create_mariadb_database, delete_mariadb_database
+)
+from app.git_deploy import git_pull, setup_git_repo, generate_webhook_token
+from app.wordpress import install_wordpress, is_php_installed
+
 from app.sites import (
     list_sites, create_site, toggle_site, delete_site, 
     extract_zip_to_site, reload_nginx, test_nginx_syntax
@@ -251,6 +261,36 @@ async def api_create_site(
     port: int = Form(80)
 ):
     require_auth(request, config)
+    domain_clean = domain.strip().lower()
+    if domain_clean.startswith("http://"):
+        domain_clean = domain_clean[7:]
+    elif domain_clean.startswith("https://"):
+        domain_clean = domain_clean[8:]
+    domain_clean = domain_clean.split("/")[0].strip()
+
+    if site_type == "wordpress":
+        # 1. Create PHP virtual host in Nginx
+        ok, msg = create_site(config, domain_clean, "php", proxy_target, custom_root, port)
+        if not ok:
+            return RedirectResponse(url=f"/sites?err={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
+        
+        # 2. Setup database credentials
+        site_path = f"/var/www/{domain_clean}"
+        db_name = "wp_" + "".join(c for c in domain_clean if c.isalnum())[:16]
+        db_user = "usr_" + "".join(c for c in domain_clean if c.isalnum())[:12]
+        import secrets
+        db_pass = secrets.token_hex(8)
+
+        if is_mariadb_active():
+            create_mariadb_database(db_name, db_user, db_pass)
+
+        # 3. Install WordPress
+        wp_res = install_wordpress(domain_clean, db_name, db_user, db_pass, site_path)
+        if wp_res.get("success"):
+            return RedirectResponse(url=f"/sites?msg={urllib.parse.quote(wp_res['message'])}", status_code=status.HTTP_302_FOUND)
+        else:
+            return RedirectResponse(url=f"/sites?err={urllib.parse.quote(wp_res['message'])}", status_code=status.HTTP_302_FOUND)
+
     ok, msg = create_site(config, domain, site_type, proxy_target, custom_root, port)
     if ok:
         return RedirectResponse(url=f"/sites?msg={urllib.parse.quote(str(msg))}", status_code=status.HTTP_302_FOUND)
@@ -520,6 +560,212 @@ async def api_settings_update(
 # -----------------------------------------------------------------------------
 # Runner
 # -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# 🗄️ Bancos de Dados (SQLite & MariaDB)
+# -----------------------------------------------------------------------------
+@app.get("/databases", response_class=HTMLResponse)
+async def databases_page(request: Request, msg: Optional[str] = None, err: Optional[str] = None):
+    require_auth(request, config)
+    all_sites = list_sites(config)
+    sqlite_dbs = list_sqlite_databases("/var/www")
+    mariadb_dbs = list_mariadb_databases()
+    mariadb_on = is_mariadb_active()
+
+    context = get_template_context(request, {
+        "page": "databases",
+        "sites": all_sites,
+        "sqlite_dbs": sqlite_dbs,
+        "mariadb_dbs": mariadb_dbs,
+        "mariadb_active": mariadb_on,
+        "msg": msg,
+        "err": err,
+    })
+    return templates.TemplateResponse(request=request, name="databases.html", context=context)
+
+
+@app.post("/api/databases/sqlite/create")
+async def api_create_sqlite(request: Request, folder_path: str = Form(...), filename: str = Form(...)):
+    require_auth(request, config)
+    res = create_sqlite_database(folder_path.strip(), filename.strip())
+    if res["success"]:
+        return RedirectResponse(url=f"/databases?msg={urllib.parse.quote(res['message'])}", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=f"/databases?err={urllib.parse.quote(res['message'])}", status_code=status.HTTP_302_FOUND)
+
+
+@app.post("/api/databases/sqlite/query")
+async def api_query_sqlite(request: Request, db_path: str = Form(...), query: str = Form(...)):
+    require_auth(request, config)
+    return execute_sqlite_query(db_path.strip(), query.strip())
+
+
+@app.post("/api/databases/mariadb/create")
+async def api_create_mariadb(request: Request, db_name: str = Form(...), username: Optional[str] = Form(None), password: Optional[str] = Form(None)):
+    require_auth(request, config)
+    res = create_mariadb_database(db_name.strip(), username.strip() if username else None, password.strip() if password else None)
+    if res["success"]:
+        return RedirectResponse(url=f"/databases?msg={urllib.parse.quote(res['message'])}", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url=f"/databases?err={urllib.parse.quote(res['message'])}", status_code=status.HTTP_302_FOUND)
+
+
+@app.post("/api/databases/mariadb/delete")
+async def api_delete_mariadb(request: Request, db_name: str = Form(...)):
+    require_auth(request, config)
+    return delete_mariadb_database(db_name.strip())
+
+
+# -----------------------------------------------------------------------------
+# 📦 Backups & Disaster Recovery (1-Clique)
+# -----------------------------------------------------------------------------
+@app.get("/backups", response_class=HTMLResponse)
+async def backups_page(request: Request, msg: Optional[str] = None, err: Optional[str] = None):
+    require_auth(request, config)
+    backups = list_backups()
+    context = get_template_context(request, {
+        "page": "backups",
+        "backups": backups,
+        "msg": msg,
+        "err": err,
+    })
+    return templates.TemplateResponse(request=request, name="backups.html", context=context)
+
+
+@app.post("/api/backups/create")
+async def api_create_backup(request: Request):
+    require_auth(request, config)
+    return create_backup(config)
+
+
+@app.get("/api/backups/download/{filename}")
+async def api_download_backup(request: Request, filename: str):
+    require_auth(request, config)
+    clean_name = os.path.basename(filename)
+    fpath = os.path.join(BACKUP_DIR, clean_name)
+    if not os.path.exists(fpath):
+        raise HTTPException(status_code=404, detail="Arquivo de backup não encontrado.")
+    return FileResponse(path=fpath, filename=clean_name, media_type="application/gzip")
+
+
+@app.post("/api/backups/delete")
+async def api_delete_backup(request: Request, filename: str = Form(...)):
+    require_auth(request, config)
+    return delete_backup(filename.strip())
+
+
+@app.post("/api/backups/restore")
+async def api_restore_backup_upload(request: Request, backup_file: UploadFile = File(...)):
+    require_auth(request, config)
+    tmp_path = f"/tmp/upload-restore-{backup_file.filename}"
+    try:
+        with open(tmp_path, "wb") as f:
+            shutil.copyfileobj(backup_file.file, f)
+        res = restore_backup(tmp_path)
+        if res["success"]:
+            return RedirectResponse(url=f"/backups?msg={urllib.parse.quote(res['message'])}", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url=f"/backups?err={urllib.parse.quote(res['message'])}", status_code=status.HTTP_302_FOUND)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+@app.post("/api/backups/restore-stored")
+async def api_restore_stored_backup(request: Request, filename: str = Form(...)):
+    require_auth(request, config)
+    clean_name = os.path.basename(filename)
+    fpath = os.path.join(BACKUP_DIR, clean_name)
+    return restore_backup(fpath)
+
+
+# -----------------------------------------------------------------------------
+# ⚡ Ações Rápidas de Sistema & Mini Web Terminal
+# -----------------------------------------------------------------------------
+@app.post("/api/system/drop-caches")
+async def api_drop_caches(request: Request):
+    require_auth(request, config)
+    return drop_caches()
+
+
+@app.post("/api/system/reboot")
+async def api_reboot(request: Request):
+    require_auth(request, config)
+    return reboot_system()
+
+
+@app.post("/api/system/terminal/exec")
+async def api_terminal_exec(request: Request, command: str = Form(...)):
+    require_auth(request, config)
+    return execute_terminal_command(command)
+
+
+# -----------------------------------------------------------------------------
+# 🌐 Git Webhooks & Deploy Automático
+# -----------------------------------------------------------------------------
+@app.post("/api/git/setup")
+async def api_git_setup(request: Request, domain: str = Form(...), repo_url: str = Form(...), branch: str = Form("main")):
+    require_auth(request, config)
+    site_path = f"/var/www/{domain.strip()}"
+    res = setup_git_repo(site_path, repo_url.strip(), branch.strip())
+    # Save git info in config
+    if "sites_git" not in config:
+        config["sites_git"] = {}
+    config["sites_git"][domain.strip()] = {
+        "repo_url": repo_url.strip(),
+        "branch": branch.strip(),
+        "webhook_token": generate_webhook_token()
+    }
+    save_config(config)
+    return res
+
+
+@app.post("/api/git/pull")
+async def api_git_pull(request: Request, domain: str = Form(...)):
+    require_auth(request, config)
+    site_path = f"/var/www/{domain.strip()}"
+    git_info = config.get("sites_git", {}).get(domain.strip(), {})
+    branch = git_info.get("branch", "main")
+    return git_pull(site_path, branch)
+
+
+@app.post("/api/webhooks/git")
+async def api_git_webhook(request: Request, domain: str, token: str):
+    """
+    Public Webhook endpoint for GitHub/GitLab commits.
+    """
+    git_info = config.get("sites_git", {}).get(domain.strip(), {})
+    saved_token = git_info.get("webhook_token")
+    if not saved_token or saved_token != token.strip():
+        raise HTTPException(status_code=403, detail="Token de webhook inválido.")
+
+    site_path = f"/var/www/{domain.strip()}"
+    branch = git_info.get("branch", "main")
+    return git_pull(site_path, branch)
+
+
+# -----------------------------------------------------------------------------
+# 🪄 WordPress Lite 1-Clique
+# -----------------------------------------------------------------------------
+@app.post("/api/sites/install-wordpress")
+async def api_install_wordpress(request: Request, domain: str = Form(...)):
+    require_auth(request, config)
+    domain = domain.strip().lower()
+    site_path = f"/var/www/{domain}"
+    db_name = "wp_" + "".join(c for c in domain if c.isalnum())[:16]
+    db_user = "usr_" + "".join(c for c in domain if c.isalnum())[:12]
+    import secrets
+    db_pass = secrets.token_hex(8)
+
+    # 1. Create site in Nginx if not exists
+    create_site(domain=domain, site_type="php", port=80, config=config)
+
+    # 2. Create MariaDB database and user if MariaDB is active
+    if is_mariadb_active():
+        create_mariadb_database(db_name, db_user, db_pass)
+
+    # 3. Install WordPress
+    res = install_wordpress(domain, db_name, db_user, db_pass, site_path)
+    return res
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(config.get("port", 8888))

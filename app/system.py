@@ -333,3 +333,116 @@ def get_public_ip() -> str:
     except Exception:
         pass
     return _last_public_ip or "127.0.0.1"
+
+
+def drop_caches() -> Dict[str, Any]:
+    """
+    Frees Linux pagecache, dentries, and inodes via /proc/sys/vm/drop_caches.
+    Returns memory freed in MB.
+    """
+    mem_before = get_memory_info()
+    try:
+        # Run sync first to flush dirty pages to disk
+        subprocess.run(["sync"], timeout=5)
+        # Drop caches
+        drop_path = "/proc/sys/vm/drop_caches"
+        if os.path.exists(drop_path):
+            with open(drop_path, "w") as f:
+                f.write("3\n")
+        else:
+            # Fallback for dev / macOS
+            pass
+        
+        # Give kernel a fraction of a second to settle
+        time.sleep(0.3)
+        mem_after = get_memory_info()
+        freed_mb = max(0.0, round(mem_before["ram_used_mb"] - mem_after["ram_used_mb"], 1))
+        return {
+            "success": True,
+            "freed_mb": freed_mb,
+            "ram_used_mb": mem_after["ram_used_mb"],
+            "ram_free_mb": mem_after["ram_free_mb"],
+            "message": f"Memória otimizada! {freed_mb} MB de cache foram liberados."
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "freed_mb": 0.0,
+            "message": f"Erro ao liberar memória: {str(e)}"
+        }
+
+
+def reboot_system() -> Dict[str, Any]:
+    """
+    Schedules an immediate clean reboot of the system.
+    """
+    try:
+        subprocess.Popen("sleep 1 && systemctl reboot", shell=True)
+        return {
+            "success": True,
+            "message": "Comando de reinicialização enviado. O dispositivo estará de volta em instantes."
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Falha ao agendar reinicialização: {str(e)}"
+        }
+
+
+def execute_terminal_command(command: str, timeout: int = 15) -> Dict[str, Any]:
+    """
+    Executes a bash command for the Web Terminal.
+    """
+    command = command.strip()
+    if not command:
+        return {"success": False, "stdout": "", "stderr": "Comando vazio.", "exit_code": 1, "duration_ms": 0}
+
+    # Block extremely destructive commands
+    dangerous = ["rm -rf /", "rm -rf /*", "mkfs", "dd if=/dev/zero of=/dev/sd", "dd if=/dev/zero of=/dev/mmcblk"]
+    for d in dangerous:
+        if d in command:
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": f"Comando bloqueado por segurança: {d}",
+                "exit_code": 126,
+                "duration_ms": 0
+            }
+
+    start_time = time.time()
+    try:
+        proc = subprocess.run(
+            command,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=timeout,
+            cwd="/root" if os.path.exists("/root") else None
+        )
+        duration_ms = int((time.time() - start_time) * 1000)
+        return {
+            "success": proc.returncode == 0,
+            "stdout": proc.stdout,
+            "stderr": proc.stderr,
+            "exit_code": proc.returncode,
+            "duration_ms": duration_ms
+        }
+    except subprocess.TimeoutExpired:
+        duration_ms = int((time.time() - start_time) * 1000)
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": f"Tempo limite excedido ({timeout} segundos).",
+            "exit_code": 124,
+            "duration_ms": duration_ms
+        }
+    except Exception as e:
+        duration_ms = int((time.time() - start_time) * 1000)
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": str(e),
+            "exit_code": 1,
+            "duration_ms": duration_ms
+        }

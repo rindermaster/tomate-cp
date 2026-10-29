@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Backups & Restauração — {{ panel_name }}{% endblock %}
+{% block header_title %}Recuperação de Desastres (Backups){% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-outline btn-sm" onclick="openModal('modal-restore-upload')">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Restaurar de Arquivo .tar.gz
+</button>
+<button class="btn btn-primary btn-sm" id="btn-create-backup" onclick="triggerCreateBackup()">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    Criar Backup em 1 Clique
+</button>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- Disaster Recovery Explainer Card -->
+    <div class="bento-card" style="padding: 20px 24px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); border-left: 4px solid var(--color-primary);">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="width: 44px; height: 44px; border-radius: var(--radius-sm); background: rgba(239, 68, 68, 0.15); display: flex; align-items: center; justify-content: center; color: var(--color-primary); flex-shrink: 0;">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 700; color: #FFFFFF; margin-bottom: 3px;">Proteção Total contra Perda de Dados</h3>
+                    <p style="font-size: 13px; color: var(--color-text-muted); line-height: 1.5;">
+                        Se a TV Box queimar ou o cartão de memória corromper, baixe o arquivo de backup e suba em qualquer outra TV Box ou Linux para restaurar todos os seus sites, domínios e bancos em segundos!
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="badge badge-success">{{ backups|length }} Backup(s) Salvo(s)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backups Table -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Arquivo de Backup (.tar.gz)</th>
+                    <th>Tamanho</th>
+                    <th>Data de Criação</th>
+                    <th>Conteúdo Arquivado</th>
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in backups %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 30px; height: 30px; border-radius: 6px; background: rgba(239, 68, 68, 0.12); display: flex; align-items: center; justify-content: center; color: var(--color-primary);">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                            </div>
+                            <span style="font-weight: 700; color: #FFFFFF; font-family: var(--font-mono); font-size: 13px;">
+                                {{ b.filename }}
+                            </span>
+                        </div>
+                    </td>
+                    <td style="font-size: 13px; color: var(--color-text-subtle);">
+                        {{ b.size_mb }} MB
+                    </td>
+                    <td style="font-size: 13px; color: var(--color-text-muted);">
+                        {{ b.created_at }}
+                    </td>
+                    <td>
+                        <span class="badge badge-neutral">Sites + Nginx + Config + BD</span>
+                    </td>
+                    <td style="text-align: right;">
+                        <div style="display: inline-flex; align-items: center; gap: 8px;">
+                            <a href="/api/backups/download/{{ b.filename }}" class="btn btn-primary btn-sm" title="Baixar arquivo de backup">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                Baixar
+                            </a>
+                            <button class="btn btn-outline btn-sm" onclick="confirmRestoreStored('{{ b.filename }}')" title="Restaurar este backup">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                Restaurar
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="confirmDeleteBackup('{{ b.filename }}')" title="Excluir arquivo">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 48px; color: var(--color-text-subtle);">
+                        <p style="margin-bottom: 12px; font-size: 15px;">Nenhum backup gerado ainda.</p>
+                        <button class="btn btn-primary btn-sm" onclick="triggerCreateBackup()">
+                            Gerar Primeiro Backup Agora
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: Restaurar a partir de Upload -->
+<div id="modal-restore-upload" class="modal-overlay">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3 class="modal-title">Restaurar Backup (.tar.gz)</h3>
+            <button class="modal-close" onclick="closeModal('modal-restore-upload')">&times;</button>
+        </div>
+        <form action="/api/backups/restore" method="POST" enctype="multipart/form-data">
+            <div class="modal-body">
+                <div class="alert alert-warning" style="margin-bottom: 16px;">
+                    ⚠️ <strong>Atenção:</strong> A restauração irá sobrescrever os arquivos e configurações correspondentes do Nginx com os dados contidos no backup.
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="backup-file">Selecione o arquivo de backup (.tar.gz)</label>
+                    <input type="file" id="backup-file" name="backup_file" accept=".tar.gz,.gz" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-restore-upload')">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Confirmar Restauração</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function triggerCreateBackup() {
+    const btn = document.getElementById("btn-create-backup");
+    btn.disabled = true;
+    btn.innerText = "Criando Backup (.tar.gz)...";
+    showToast("Gerando arquivo de backup completo...", "neutral");
+
+    try {
+        const res = await fetch("/api/backups/create", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast(data.message, "danger");
+            btn.disabled = false;
+            btn.innerText = "Criar Backup em 1 Clique";
+        }
+    } catch (e) {
+        showToast("Erro ao gerar backup.", "danger");
+        btn.disabled = false;
+        btn.innerText = "Criar Backup em 1 Clique";
+    }
+}
+
+async function confirmDeleteBackup(filename) {
+    if (!confirm(`Excluir permanentemente o arquivo de backup "${filename}"?`)) return;
+
+    try {
+        const formData = new FormData();
+        formData.append("filename", filename);
+        const res = await fetch("/api/backups/delete", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showToast(data.message, "danger");
+        }
+    } catch (e) {
+        showToast("Erro ao excluir arquivo.", "danger");
+    }
+}
+
+async function confirmRestoreStored(filename) {
+    if (!confirm(`Tem certeza de que deseja restaurar os sites e configurações a partir de "${filename}"? Isso substituirá o estado atual.`)) return;
+
+    showToast("Restaurando backup...", "neutral");
+    try {
+        const formData = new FormData();
+        formData.append("filename", filename);
+        const res = await fetch("/api/backups/restore-stored", {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showToast(data.message, "danger");
+        }
+    } catch (e) {
+        showToast("Erro durante a restauração.", "danger");
+    }
+}
+</script>
+{% endblock %}
