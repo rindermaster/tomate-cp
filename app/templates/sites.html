@@ -46,68 +46,74 @@
     <table>
         <thead>
             <tr>
-                <th>Domínio</th>
-                <th>Tipo</th>
-                <th>Diretório / Destino</th>
-                <th>Arquivos</th>
-                <th>Status</th>
-                <th style="text-align: right;">Ações</th>
+                <th style="width: 28%;">Domínio</th>
+                <th style="width: 18%;">Tipo</th>
+                <th style="width: 14%;">Arquivos</th>
+                <th style="width: 14%;">Status</th>
+                <th style="width: 26%; text-align: right;">Ações</th>
             </tr>
         </thead>
         <tbody>
             {% for site in sites %}
             <tr>
                 <td>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <a href="http://{{ site.domain }}" target="_blank" rel="noopener" style="font-weight: 700; color: #FFFFFF; text-decoration: none; display: flex; align-items: center; gap: 6px;">
-                            {{ site.domain }}
-                            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
-                        </a>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; color: var(--color-primary); flex-shrink: 0;">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                        </div>
+                        <div>
+                            <a href="http://{{ site.domain }}" target="_blank" rel="noopener" style="font-weight: 700; color: #FFFFFF; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px;" title="Abrir {{ site.domain }} (Diretório: {{ site.root_path }})">
+                                {{ site.domain }}
+                                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+                            </a>
+                            {% if site.type == "proxy" %}
+                            <div style="font-size: 11px; color: var(--color-text-subtle); font-family: var(--font-mono); margin-top: 1px;">
+                                Proxy: {{ site.proxy_target }}
+                            </div>
+                            {% endif %}
+                        </div>
                     </div>
                 </td>
                 <td>
-                    {% if site.type == 'static' %}
+                    {% if site.type == "static" %}
                     <span class="badge badge-success">Estático (HTML)</span>
-                    {% elif site.type == 'proxy' %}
+                    {% elif site.type == "proxy" %}
                     <span class="badge badge-warning">Proxy Reverso</span>
-                    {% elif site.type == 'php' %}
+                    {% elif site.type == "php" %}
                     <span class="badge badge-neutral">PHP-FPM</span>
                     {% endif %}
                 </td>
-                <td style="font-family: var(--font-mono); font-size: 12px; color: var(--color-text-muted);">
-                    {% if site.type == 'proxy' %}
-                    {{ site.proxy_target }}
+                <td>
+                    {% if site.type == "proxy" %}
+                    <span style="font-size: 12.5px; color: var(--color-text-subtle);">—</span>
                     {% else %}
-                    {{ site.root_path }}
+                    <span style="font-size: 12.5px; color: var(--color-text-muted);">
+                        {{ site.files_count }} {% if site.files_count == 1 %}arquivo{% else %}arquivos{% endif %}
+                    </span>
                     {% endif %}
                 </td>
                 <td>
-                    <span style="font-size: 13px; color: var(--color-text-subtle);">
-                        {{ site.files_count }} arquivo(s)
-                    </span>
-                </td>
-                <td>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <label class="toggle-switch">
                             <input type="checkbox" class="toggle-site" {% if site.active %}checked{% endif %} onchange="handleSiteToggle('{{ site.domain }}', this)">
                             <span class="toggle-slider"></span>
                         </label>
                         <span id="status-badge-{{ site.domain }}" class="badge {% if site.active %}badge-success{% else %}badge-neutral{% endif %}">
-                            {{ 'Ativo' if site.active else 'Pausado' }}
+                            {{ "Ativo" if site.active else "Pausado" }}
                         </span>
                     </div>
                 </td>
                 <td style="text-align: right;">
-                    <div style="display: inline-flex; align-items: center; gap: 8px;">
-                        <button class="btn btn-outline btn-sm" onclick="openDnsModal('{{ site.domain }}')" title="Ver como apontar o DNS deste domínio">
+                    <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px;">
+                        <button class="btn btn-outline btn-sm" onclick="openDnsModal('{{ site.domain }}')" title="Ver apontamento DNS">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></svg>
                             DNS
                         </button>
-                        <a href="/files?path={{ site.root_path }}" class="btn btn-outline btn-sm" title="Gerenciar arquivos e editar código">
+                        <a href="/files?path={{ site.root_path }}" class="btn btn-outline btn-sm" title="Gerenciar arquivos e código">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/></svg>
                             Arquivos
                         </a>
-                        <a href="/deploy?site={{ site.domain }}" class="btn btn-outline btn-sm" title="Enviar arquivos ZIP">
+                        <a href="/deploy?site={{ site.domain }}" class="btn btn-outline btn-sm" title="Upload de pacotes ZIP">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 16 4-4 4 4"/></svg>
                             Deploy
                         </a>
@@ -115,7 +121,7 @@
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><line x1="6" y1="9" x2="6" y2="21"/></svg>
                             Git
                         </button>
-                        <button class="btn btn-danger btn-sm" onclick="confirmDeleteSite('{{ site.domain }}')" title="Excluir site">
+                        <button class="btn btn-danger btn-sm" style="padding: 5px 8px;" onclick="confirmDeleteSite('{{ site.domain }}')" title="Excluir site">
                             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                         </button>
                     </div>
@@ -123,7 +129,7 @@
             </tr>
             {% else %}
             <tr>
-                <td colspan="6" style="text-align: center; padding: 48px; color: var(--color-text-subtle);">
+                <td colspan="5" style="text-align: center; padding: 48px; color: var(--color-text-subtle);">
                     <p style="margin-bottom: 12px; font-size: 15px;">Nenhum site configurado ainda.</p>
                     <button class="btn btn-primary btn-sm" onclick="openModal('modal-create-site')">
                         Adicionar Primeiro Site
