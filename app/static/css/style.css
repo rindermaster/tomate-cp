@@ -600,14 +600,15 @@ input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
 
-/* Modals */
+/* Modals (Solid Standard Dark Surface - UI/UX Pro Max) */
 .modal-overlay {
   display: none;
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  z-index: 100;
+  background: rgba(10, 15, 26, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 20000;
   align-items: center;
   justify-content: center;
   padding: 20px;
@@ -617,15 +618,19 @@ input:checked + .toggle-slider:before {
   display: flex !important;
 }
 
+.modal,
 .modal-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: #1E293B !important;
+  background-color: #1E293B !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 520px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
-  animation: modalEnter 0.25s ease-out;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: modalEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
+  color: #FFFFFF;
+  position: relative;
 }
 
 @keyframes modalEnter {
@@ -634,16 +639,18 @@ input:checked + .toggle-slider:before {
 }
 
 .modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: rgba(15, 23, 42, 0.35);
 }
 
 .modal-title {
   font-size: 16px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: #FFFFFF;
 }
 
@@ -652,25 +659,32 @@ input:checked + .toggle-slider:before {
   border: none;
   color: var(--color-text-subtle);
   cursor: pointer;
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
+  padding: 4px;
+  border-radius: 4px;
+  transition: var(--transition);
 }
 
 .modal-close:hover {
   color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 22px 24px;
+  color: var(--color-text);
 }
 
-.modal-footer {
+.modal-footer,
+.modal-actions {
   padding: 16px 24px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 12px;
-  background: rgba(15, 23, 42, 0.3);
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.5);
 }
 
 /* Form Controls */
@@ -763,6 +777,16 @@ input:checked + .toggle-slider:before {
 
 .alert-success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); color: #22C55E; }
 .alert-danger { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #EF4444; }
+.alert-warning { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #F59E0B; }
+.alert-info { background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); color: #38BDF8; }
+
+.modal > form,
+.modal-card > form {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  width: 100%;
+}
 
 
 /* Sidebar Top & Drawer Elements */
@@ -1129,6 +1153,7 @@ input:checked + .toggle-slider:before {
     align-items: flex-end;
   }
 
+  .modal,
   .modal-card {
     width: 100%;
     max-width: 100%;
@@ -1138,6 +1163,11 @@ input:checked + .toggle-slider:before {
     border-top-right-radius: 20px;
     max-height: 90vh;
     animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .modal-footer,
+  .modal-actions {
+    padding: 16px 20px max(24px, env(safe-area-inset-bottom, 20px));
   }
 
   @keyframes slideUp {
