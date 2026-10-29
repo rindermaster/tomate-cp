@@ -1,0 +1,916 @@
+{% extends "base.html" %}
+
+{% block title %}Agente IA — {{ panel_name }}{% endblock %}
+{% block header_title %}Agente IA (Web Developer){% endblock %}
+
+{% block content %}
+<style>
+/* Layout Agente IA */
+.ai-agent-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 20px;
+  align-items: stretch;
+  min-height: calc(100vh - 170px);
+}
+
+.ai-chat-card {
+  background: #1E293B;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.ai-sidebar-card {
+  background: #1E293B;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Chat Header */
+.ai-header-bar {
+  padding: 14px 20px;
+  background: rgba(15, 23, 42, 0.65);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ai-site-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-site-select {
+  background: #0B1120;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.ai-site-select:focus {
+  border-color: #EF4444;
+}
+
+/* Chat Message Thread */
+.ai-chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #0F172A;
+}
+
+.ai-message {
+  display: flex;
+  gap: 14px;
+  max-width: 90%;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ai-message.user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.ai-message.assistant {
+  align-self: flex-start;
+}
+
+.ai-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.ai-avatar.bot {
+  background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+}
+
+.ai-avatar.user-avatar {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+.ai-bubble {
+  background: #1E293B;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 14px 18px;
+  color: #FFFFFF;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+.ai-message.user .ai-bubble {
+  background: #1D4ED8;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+  border-bottom-right-radius: 2px;
+}
+
+.ai-message.assistant .ai-bubble {
+  border-bottom-left-radius: 2px;
+}
+
+/* Quick Chips */
+.ai-quick-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  background: rgba(15, 23, 42, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ai-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #FFFFFF;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  user-select: none;
+}
+
+.ai-chip:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #EF4444;
+  color: #FFFFFF;
+}
+
+/* Chat Input Bar */
+.ai-input-bar {
+  padding: 16px 20px;
+  background: #1E293B;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.ai-textarea {
+  flex: 1;
+  background: #0B1120;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #FFFFFF;
+  font-size: 14px;
+  resize: none;
+  min-height: 48px;
+  max-height: 140px;
+  outline: none;
+  font-family: inherit;
+  line-height: 1.4;
+  transition: var(--transition);
+}
+
+.ai-textarea:focus {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.25);
+}
+
+.ai-send-btn {
+  background: #EF4444;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+  transition: var(--transition);
+}
+
+.ai-send-btn:hover {
+  background: #DC2626;
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.5);
+}
+
+.ai-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Proposed Change Card */
+.ai-change-card {
+  margin-top: 14px;
+  background: #0B1120;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ai-change-header {
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ai-change-file {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #38BDF8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-diff-pre {
+  margin: 0;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #030712;
+  color: #E2E8F0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.ai-change-actions {
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Sidebar Tabs */
+.ai-tabs-bar {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.ai-tab-btn {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #CBD5E1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  border-bottom: 2px solid transparent;
+}
+
+.ai-tab-btn.active {
+  color: #FFFFFF;
+  border-bottom-color: #EF4444;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ai-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: none;
+}
+
+.ai-tab-content.active {
+  display: block;
+}
+
+.file-item-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #FFFFFF;
+}
+
+.file-item-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 960px) {
+  .ai-agent-layout {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<div class="ai-agent-layout">
+    <!-- Main Chat Work Area -->
+    <div class="ai-chat-card">
+        <!-- Chat Topbar -->
+        <div class="ai-header-bar">
+            <div class="ai-site-picker">
+                <span style="font-size: 12px; font-weight: 700; color: #CBD5E1;">Site Alvo:</span>
+                <select id="ai-site-select" class="ai-site-select" onchange="onSiteChanged()">
+                    {% for s in sites %}
+                    <option value="{{ s.domain }}" {% if selected_site == s.domain %}selected{% endif %}>
+                        🌐 {{ s.domain }}
+                    </option>
+                    {% else %}
+                    <option value="_root">/var/www (Geral)</option>
+                    {% endfor %}
+                </select>
+                <span class="badge badge-success" id="ai-active-model-badge" style="cursor: pointer;" onclick="openModal('modal-ai-settings')" title="Clique para trocar de modelo">
+                    🤖 {{ current_model.split('/')[-1] }}
+                </span>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="clearChat()" title="Limpar conversa atual">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Limpar
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="openModal('modal-ai-settings')" title="Configurar Provedor e Modelos">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Ajustes
+                </button>
+            </div>
+        </div>
+
+        <!-- Thread of Messages -->
+        <div id="ai-chat-thread" class="ai-chat-thread">
+            <!-- Initial Welcome Message -->
+            <div class="ai-message assistant">
+                <div class="ai-avatar bot">🍅</div>
+                <div class="ai-bubble">
+                    <p style="margin-bottom: 8px;">
+                        Olá! Eu sou o <strong>Tomate Agent</strong>, seu desenvolvedor web de IA integrado à TV Box.
+                    </p>
+                    <p style="margin-bottom: 8px; color: #CBD5E1;">
+                        Posso criar landing pages, adicionar formulários, implementar Dark Mode, ajustar estilos CSS ou depurar scripts diretamente nos arquivos do seu site.
+                    </p>
+                    <div style="font-size: 12px; color: #38BDF8; font-weight: 600;">
+                        💡 O que deseja criar ou alterar hoje? Experimente uma das sugestões abaixo.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Prompt Chips -->
+        <div class="ai-quick-chips">
+            <span class="ai-chip" onclick="useQuickPrompt('Crie uma landing page moderna de página única com hero section, serviços e chamada para ação.')">
+                🎨 Criar Landing Page Moderna
+            </span>
+            <span class="ai-chip" onclick="useQuickPrompt('Adicione um botão flutuante de WhatsApp no canto inferior direito com mensagem personalizada.')">
+                💬 Botão de WhatsApp
+            </span>
+            <span class="ai-chip" onclick="useQuickPrompt('Adicione um seletor de Dark/Light mode com botão elegante no topo.')">
+                🌙 Dark/Light Mode
+            </span>
+            <span class="ai-chip" onclick="useQuickPrompt('Melhore o SEO adicionando meta tags OpenGraph e tags para compartilhamento em redes sociais.')">
+                🚀 Otimizar SEO
+            </span>
+            <span class="ai-chip" onclick="useQuickPrompt('Analise a estrutura dos arquivos atuais deste site e aponte melhorias visuais.')">
+                🔍 Analisar Site Atual
+            </span>
+        </div>
+
+        <!-- Prompt Input Bar -->
+        <form id="ai-chat-form" class="ai-input-bar" onsubmit="handleSendMessage(event)">
+            <textarea
+                id="ai-user-input"
+                class="ai-textarea"
+                placeholder="Peça uma alteração no site ou faça uma pergunta... (ex: 'Adicione um rodapé com links e copyright')"
+                rows="1"
+                onkeydown="handleTextareaKeydown(event)"
+            ></textarea>
+            <button type="submit" id="ai-submit-btn" class="ai-send-btn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span>Enviar</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Right Context Sidebar (Files & Backups) -->
+    <div class="ai-sidebar-card">
+        <div class="ai-tabs-bar">
+            <button type="button" class="ai-tab-btn active" onclick="switchTab('tab-files')">Arquivos</button>
+            <button type="button" class="ai-tab-btn" onclick="switchTab('tab-history')">Histórico</button>
+            <button type="button" class="ai-tab-btn" onclick="switchTab('tab-status')">Conexão</button>
+        </div>
+
+        <!-- Tab 1: Site Files -->
+        <div id="tab-files" class="ai-tab-content active">
+            <div style="font-size: 11.5px; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                <span>Arquivos Detectados</span>
+                <span id="site-files-count" style="color: #38BDF8;">0 arquivos</span>
+            </div>
+            <div id="site-files-list">
+                <div style="text-align: center; padding: 30px 10px; color: #CBD5E1; font-size: 12px;">
+                    Carregando estrutura do site...
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Change History -->
+        <div id="tab-history" class="ai-tab-content">
+            <div style="font-size: 11.5px; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 10px;">
+                Alterações Recentes da IA
+            </div>
+            <div id="history-changes-list">
+                <div style="text-align: center; padding: 30px 10px; color: #CBD5E1; font-size: 12px;">
+                    Nenhuma alteração registrada nesta sessão.
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Model & Status -->
+        <div id="tab-status" class="ai-tab-content">
+            <div style="font-size: 11.5px; font-weight: 700; color: #CBD5E1; text-transform: uppercase; margin-bottom: 12px;">
+                Provedor Atual
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="font-size: 13px; font-weight: 700; color: #FFFFFF;">OpenRouter AI</span>
+                    <span class="badge badge-success">Conectado</span>
+                </div>
+                <div style="font-size: 12px; color: #CBD5E1; font-family: var(--font-mono); margin-bottom: 6px;">
+                    Modelo: <span id="status-model-name" style="color: #38BDF8;">{{ current_model }}</span>
+                </div>
+                <div style="font-size: 11px; color: #CBD5E1;">
+                    Chave: <span style="font-family: var(--font-mono); color: #86EFAC;">{{ masked_key or 'Segura na Box' }}</span>
+                </div>
+            </div>
+
+            <button type="button" class="btn btn-outline" style="width: 100%; font-size: 12px;" onclick="openModal('modal-ai-settings')">
+                ⚙️ Alterar Chave ou Modelo
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- Modal: Configurações de IA (OpenRouter, Ollama, Modelos)                 -->
+<!-- ======================================================================= -->
+<div id="modal-ai-settings" class="modal-overlay">
+    <div class="modal-card" style="max-width: 540px;">
+        <div class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                Configurações da IA
+            </h3>
+            <button class="modal-close" onclick="closeModal('modal-ai-settings')">&times;</button>
+        </div>
+
+        <form onsubmit="handleSaveAISettings(event)">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="setting-provider">Provedor de Inteligência</label>
+                    <select id="setting-provider" class="form-control" onchange="toggleProviderInputs()">
+                        <option value="openrouter" selected>OpenRouter (Cohere, DeepSeek, Llama, Qwen, etc.)</option>
+                        <option value="ollama">Ollama Local (PC na mesma rede)</option>
+                    </select>
+                </div>
+
+                <!-- OpenRouter Inputs -->
+                <div id="section-openrouter">
+                    <div class="form-group">
+                        <label class="form-label" for="setting-openrouter-key">Chave de API do OpenRouter</label>
+                        <input
+                            type="password"
+                            id="setting-openrouter-key"
+                            class="form-control"
+                            placeholder="sk-or-v1-••••••••••••••••"
+                            value="{{ masked_key }}"
+                        >
+                        <div class="form-hint">Sua chave é armazenada de forma segura na TV Box e nunca compartilhada.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="setting-model">Modelo de IA</label>
+                        <select id="setting-model" class="form-control">
+                            {% for m in popular_models %}
+                            <option value="{{ m.id }}" {% if current_model == m.id %}selected{% endif %}>
+                                {{ m.name }} [{{ m.badge }}]
+                            </option>
+                            {% endfor %}
+                            <option value="custom">Outro modelo personalizado...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="group-custom-model" style="display: none;">
+                        <label class="form-label" for="setting-custom-model">Slug do Modelo Customizado</label>
+                        <input type="text" id="setting-custom-model" class="form-control" placeholder="ex: deepseek/deepseek-r1:free">
+                    </div>
+                </div>
+
+                <!-- Ollama Local Inputs -->
+                <div id="section-ollama" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="setting-ollama-url">URL do Servidor Ollama</label>
+                        <input type="text" id="setting-ollama-url" class="form-control" placeholder="http://192.168.1.100:11434" value="http://127.0.0.1:11434">
+                        <div class="form-hint">Coloque o IP do seu computador na rede que está rodando o Ollama.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modal-ai-settings')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Configurações</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let chatHistory = [];
+let pendingChanges = [];
+let activeSite = "{{ selected_site }}";
+
+function switchTab(tabId) {
+    document.querySelectorAll(".ai-tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".ai-tab-content").forEach(c => c.classList.remove("active"));
+    event.target.classList.add("active");
+    document.getElementById(tabId).classList.add("active");
+}
+
+function useQuickPrompt(text) {
+    const input = document.getElementById("ai-user-input");
+    input.value = text;
+    input.focus();
+}
+
+function handleTextareaKeydown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        document.getElementById("ai-chat-form").requestSubmit();
+    }
+}
+
+function toggleProviderInputs() {
+    const p = document.getElementById("setting-provider").value;
+    document.getElementById("section-openrouter").style.display = (p === "openrouter") ? "block" : "none";
+    document.getElementById("section-ollama").style.display = (p === "ollama") ? "block" : "none";
+}
+
+document.getElementById("setting-model").addEventListener("change", function() {
+    document.getElementById("group-custom-model").style.display = (this.value === "custom") ? "block" : "none";
+});
+
+function onSiteChanged() {
+    activeSite = document.getElementById("ai-site-select").value;
+    loadSiteFiles();
+}
+
+async function loadSiteFiles() {
+    const container = document.getElementById("site-files-list");
+    const countLabel = document.getElementById("site-files-count");
+    if (!activeSite) return;
+    
+    try {
+        const res = await fetch(`/api/files/list?path=/var/www/${activeSite}`);
+        const data = await res.json();
+        if (data.success && data.items) {
+            countLabel.innerText = `${data.items.length} itens`;
+            let html = "";
+            data.items.forEach(item => {
+                const icon = item.is_dir ? "📁" : "📄";
+                html += `
+                    <div class="file-item-pill">
+                        <span style="font-family: var(--font-mono); display: flex; align-items: center; gap: 6px;">
+                            ${icon} ${escapeHtml(item.name)}
+                        </span>
+                        <span style="color: #CBD5E1; font-size: 11px;">${item.size_fmt || ''}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html || "<div style='color: #CBD5E1; text-align: center; padding: 20px;'>Pasta vazia</div>";
+        }
+    } catch (e) {
+        container.innerHTML = "<div style='color: #CBD5E1; text-align: center; padding: 20px;'>Não foi possível listar arquivos</div>";
+    }
+}
+
+function clearChat() {
+    chatHistory = [];
+    const thread = document.getElementById("ai-chat-thread");
+    thread.innerHTML = `
+        <div class="ai-message assistant">
+            <div class="ai-avatar bot">🍅</div>
+            <div class="ai-bubble">
+                <p>Conversa reiniciada. O que gostaria de criar ou modificar no site <strong>${escapeHtml(activeSite)}</strong>?</p>
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    if (!text) return "";
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function handleSendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById("ai-user-input");
+    const prompt = input.value.trim();
+    if (!prompt) return;
+
+    const thread = document.getElementById("ai-chat-thread");
+    const submitBtn = document.getElementById("ai-submit-btn");
+
+    // 1. Append User Message
+    const userMsgEl = document.createElement("div");
+    userMsgEl.className = "ai-message user";
+    userMsgEl.innerHTML = `
+        <div class="ai-avatar user-avatar">U</div>
+        <div class="ai-bubble">${escapeHtml(prompt)}</div>
+    `;
+    thread.appendChild(userMsgEl);
+    input.value = "";
+    thread.scrollTop = thread.scrollHeight;
+
+    // 2. Append Loading Placeholder
+    const loadingId = "loading-" + Date.now();
+    const loadingEl = document.createElement("div");
+    loadingEl.className = "ai-message assistant";
+    loadingEl.id = loadingId;
+    loadingEl.innerHTML = `
+        <div class="ai-avatar bot">🍅</div>
+        <div class="ai-bubble" style="display: flex; align-items: center; gap: 10px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" class="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <span style="color: #CBD5E1; font-weight: 600;">O Tomate Agent está analisando o site e gerando código...</span>
+        </div>
+    `;
+    thread.appendChild(loadingEl);
+    thread.scrollTop = thread.scrollHeight;
+    submitBtn.disabled = true;
+
+    try {
+        const res = await fetch("/api/ai/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                site: activeSite,
+                prompt: prompt,
+                history: chatHistory
+            })
+        });
+
+        const data = await res.json();
+        loadingEl.remove();
+
+        if (res.ok && data.success) {
+            // Store history
+            chatHistory.push({ role: "user", content: prompt });
+            chatHistory.push({ role: "assistant", content: data.reply });
+
+            // Create Assistant Message
+            const botMsgEl = document.createElement("div");
+            botMsgEl.className = "ai-message assistant";
+            
+            // Format text (simple markdown line breaks)
+            let formattedText = escapeHtml(data.reply).replace(/\n/g, "<br>");
+            
+            let changesHtml = "";
+            if (data.changes && data.changes.length > 0) {
+                pendingChanges = data.changes;
+                changesHtml += `<div style="margin-top: 14px; font-weight: 700; color: #86EFAC; font-size: 13px;">📝 Alterações de Código Propostas:</div>`;
+                data.changes.forEach((ch, idx) => {
+                    changesHtml += `
+                        <div class="ai-change-card" id="change-card-${idx}">
+                            <div class="ai-change-header">
+                                <span class="ai-change-file">📄 ${escapeHtml(ch.path)}</span>
+                                <span class="badge ${ch.exists ? 'badge-warning' : 'badge-success'}">
+                                    ${ch.exists ? 'Modificar' : 'Criar Novo'}
+                                </span>
+                            </div>
+                            <pre class="ai-diff-pre">${escapeHtml(ch.diff || ch.content.substring(0, 400) + '...')}</pre>
+                            <div class="ai-change-actions">
+                                <button type="button" class="btn btn-outline btn-sm" onclick="rejectChange(${idx})">Ignorar</button>
+                                <button type="button" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D;" onclick="applySingleChange(${idx})">
+                                    ✅ Aplicar Arquivo
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                changesHtml += `
+                    <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                        <button type="button" class="btn btn-primary" style="background: #16A34A; border-color: #15803D;" onclick="applyAllChanges()">
+                            🚀 Aplicar Todas as Alterações no Site
+                        </button>
+                    </div>
+                `;
+            }
+
+            botMsgEl.innerHTML = `
+                <div class="ai-avatar bot">🍅</div>
+                <div class="ai-bubble" style="width: 100%;">
+                    <div>${formattedText}</div>
+                    ${changesHtml}
+                </div>
+            `;
+            thread.appendChild(botMsgEl);
+
+        } else {
+            const errEl = document.createElement("div");
+            errEl.className = "ai-message assistant";
+            errEl.innerHTML = `
+                <div class="ai-avatar bot">🍅</div>
+                <div class="ai-bubble">
+                    <div class="alert alert-danger" style="margin: 0;">
+                        ❌ Erro ao consultar a IA: ${escapeHtml(data.message || 'Erro de comunicação')}
+                    </div>
+                </div>
+            `;
+            thread.appendChild(errEl);
+        }
+
+    } catch (err) {
+        loadingEl.remove();
+        showToast("Falha na requisição com o servidor.", "danger");
+    } finally {
+        submitBtn.disabled = false;
+        thread.scrollTop = thread.scrollHeight;
+    }
+}
+
+async function applySingleChange(idx) {
+    const item = pendingChanges[idx];
+    if (!item) return;
+
+    try {
+        const res = await fetch("/api/ai/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                site: activeSite,
+                changes: [item]
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`Arquivo '${item.path}' aplicado com sucesso!`);
+            document.getElementById(`change-card-${idx}`).innerHTML = `
+                <div style="padding: 12px 14px; background: rgba(22, 163, 74, 0.2); border: 1px solid #16A34A; border-radius: 8px; color: #DCFCE7; font-weight: 700; font-size: 13px;">
+                    ✅ Arquivo '${escapeHtml(item.path)}' salvo com sucesso no servidor!
+                    <button class="btn btn-outline btn-sm" style="margin-left: 10px;" onclick="rollbackFile('${escapeHtml(item.path)}')">Desfazer</button>
+                </div>
+            `;
+            recordHistory(item.path);
+            loadSiteFiles();
+        } else {
+            showToast(data.message || "Erro ao salvar", "danger");
+        }
+    } catch (e) {
+        showToast("Erro ao conectar.", "danger");
+    }
+}
+
+async function applyAllChanges() {
+    if (!pendingChanges.length) return;
+    try {
+        const res = await fetch("/api/ai/apply", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                site: activeSite,
+                changes: pendingChanges
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Todas as alterações foram aplicadas com sucesso!");
+            pendingChanges.forEach(ch => recordHistory(ch.path));
+            loadSiteFiles();
+        } else {
+            showToast(data.message || "Erro ao aplicar", "danger");
+        }
+    } catch (e) {
+        showToast("Erro na requisição.", "danger");
+    }
+}
+
+function rejectChange(idx) {
+    const el = document.getElementById(`change-card-${idx}`);
+    if (el) el.remove();
+}
+
+async function rollbackFile(path) {
+    try {
+        const res = await fetch("/api/ai/rollback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ site: activeSite, path: path })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message);
+            loadSiteFiles();
+        } else {
+            showToast(data.message || "Erro ao desfazer", "danger");
+        }
+    } catch (e) {
+        showToast("Erro ao conectar.", "danger");
+    }
+}
+
+function recordHistory(path) {
+    const hist = document.getElementById("history-changes-list");
+    const item = document.createElement("div");
+    item.className = "file-item-pill";
+    item.style.marginBottom = "8px";
+    item.innerHTML = `
+        <span style="font-family: var(--font-mono); font-size: 12px; color: #86EFAC;">
+            ✓ ${escapeHtml(path)}
+        </span>
+        <button class="btn btn-outline btn-sm" style="padding: 2px 8px; font-size: 11px;" onclick="rollbackFile('${escapeHtml(path)}')">
+            Desfazer
+        </button>
+    `;
+    if (hist.innerText.includes("Nenhuma alteração")) {
+        hist.innerHTML = "";
+    }
+    hist.prepend(item);
+}
+
+async function handleSaveAISettings(e) {
+    e.preventDefault();
+    const provider = document.getElementById("setting-provider").value;
+    let model = document.getElementById("setting-model").value;
+    if (model === "custom") {
+        model = document.getElementById("setting-custom-model").value.trim();
+    }
+    const key = document.getElementById("setting-openrouter-key").value.trim();
+    const ollamaUrl = document.getElementById("setting-ollama-url").value.trim();
+
+    try {
+        const res = await fetch("/api/ai/config", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                ai_provider: provider,
+                ai_model: model,
+                openrouter_api_key: key,
+                ollama_base_url: ollamaUrl
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("Configurações de IA salvas com sucesso!");
+            closeModal("modal-ai-settings");
+            document.getElementById("ai-active-model-badge").innerText = "🤖 " + model.split("/").pop();
+            document.getElementById("status-model-name").innerText = model;
+        } else {
+            showToast(data.message || "Erro ao salvar", "danger");
+        }
+    } catch (e) {
+        showToast("Erro de rede.", "danger");
+    }
+}
+
+// Initial load
+document.addEventListener("DOMContentLoaded", () => {
+    loadSiteFiles();
+});
+</script>
+{% endblock %}

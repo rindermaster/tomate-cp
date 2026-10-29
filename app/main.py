@@ -36,6 +36,12 @@ from app.sites import (
     list_sites, create_site, toggle_site, delete_site, 
     extract_zip_to_site, reload_nginx, test_nginx_syntax
 )
+from app.ai_agent import (
+    POPULAR_MODELS, mask_api_key, get_site_root, scan_site_files,
+    read_text_safe, write_text_safe, backup_file, rollback_file,
+    generate_diff, call_llm, extract_file_proposals
+)
+
 from app.auth import (
     create_session_token, verify_session_token, 
     get_current_user_optional, require_auth
@@ -764,6 +770,236 @@ async def api_install_wordpress(request: Request, domain: str = Form(...)):
     # 3. Install WordPress
     res = install_wordpress(domain, db_name, db_user, db_pass, site_path)
     return res
+
+
+
+# -----------------------------------------------------------------------------
+# 🤖 Agente Tomate IA (Web Developer Agent)
+# -----------------------------------------------------------------------------
+@app.get("/ai-agent", response_class=HTMLResponse)
+async def ai_agent_page(request: Request, site: Optional[str] = None):
+    require_auth(request, config)
+    all_sites = list_sites(config)
+    selected_site = site or (all_sites[0]["domain"] if all_sites else "")
+    cfg = load_config()
+    current_model = cfg.get("ai_model", "cohere/north-mini-code:free")
+    raw_key = cfg.get("openrouter_api_key", "")
+    masked = mask_api_key(raw_key) if raw_key else ""
+    current_provider = cfg.get("ai_provider", "openrouter")
+    ollama_url = cfg.get("ollama_base_url", "http://127.0.0.1:11434")
+
+    context = get_template_context(request, {
+        "page": "ai_agent",
+        "sites": all_sites,
+        "selected_site": selected_site,
+        "popular_models": POPULAR_MODELS,
+        "current_model": current_model,
+        "masked_key": masked,
+        "current_provider": current_provider,
+        "ollama_url": ollama_url,
+    })
+    return templates.TemplateResponse(request=request, name="ai_agent.html", context=context)
+
+
+@app.get("/api/ai/config")
+async def api_ai_get_config(request: Request):
+    require_auth(request, config)
+    cfg = load_config()
+    raw_key = cfg.get("openrouter_api_key", "")
+    return {
+        "success": True,
+        "provider": cfg.get("ai_provider", "openrouter"),
+        "model": cfg.get("ai_model", "cohere/north-mini-code:free"),
+        "masked_key": mask_api_key(raw_key) if raw_key else "",
+        "ollama_base_url": cfg.get("ollama_base_url", "http://127.0.0.1:11434"),
+        "popular_models": POPULAR_MODELS,
+    }
+
+
+@app.post("/api/ai/config")
+async def api_ai_save_config(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "JSON inválido."})
+
+    cfg = load_config()
+    if "ai_provider" in data:
+        cfg["ai_provider"] = data["ai_provider"]
+    if "ai_model" in data and data["ai_model"]:
+        cfg["ai_model"] = data["ai_model"].strip()
+    if "ollama_base_url" in data and data["ollama_base_url"]:
+        cfg["ollama_base_url"] = data["ollama_base_url"].strip()
+
+    new_key = data.get("openrouter_api_key", "").strip()
+    if new_key and not new_key.startswith("sk-or-...") and not new_key.startswith("****"):
+        cfg["openrouter_api_key"] = new_key
+
+    save_config(cfg)
+    config.clear()
+    config.update(cfg)
+
+    return {"success": True, "message": "Configurações de IA salvas com sucesso!"}
+
+
+@app.post("/api/ai/chat")
+async def api_ai_chat(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "JSON inválido."})
+
+    site = (data.get("site") or "").strip()
+    prompt = (data.get("prompt") or "").strip()
+    history = data.get("history") or []
+
+    if not site:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Nenhum site selecionado."})
+    if not prompt:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Prompt vazio."})
+
+    root = get_site_root(site)
+    if not root:
+        return JSONResponse(status_code=404, content={"success": False, "message": f"Diretório do site '{site}' não encontrado."})
+
+    site_files = scan_site_files(root, max_files=40)
+    files_summary = "\n".join([f"- {f['path']} ({f['size']} bytes)" for f in site_files[:30]])
+    if not files_summary:
+        files_summary = "(Site vazio ou nenhum arquivo encontrado)"
+
+    common_files = ["index.html", "index.php", "style.css", "styles.css", "main.css", "app.js", "main.js", "script.js"]
+    loaded_contents = []
+    total_bytes = 0
+    max_total_bytes = 25000
+
+    for cf in common_files:
+        if total_bytes >= max_total_bytes:
+            break
+        text = read_text_safe(root, cf, max_bytes=8000)
+        if text:
+            loaded_contents.append(f"--- INÍCIO DE {cf} ---\n{text}\n--- FIM DE {cf} ---")
+            total_bytes += len(text.encode("utf-8"))
+
+    for f in site_files:
+        p = f["path"]
+        if p not in common_files and p.lower() in prompt.lower() and total_bytes < max_total_bytes:
+            text = read_text_safe(root, p, max_bytes=10000)
+            if text:
+                loaded_contents.append(f"--- INÍCIO DE {p} ---\n{text}\n--- FIM DE {p} ---")
+                total_bytes += len(text.encode("utf-8"))
+
+    context_str = "\n\n".join(loaded_contents) if loaded_contents else "(Nenhum arquivo comum encontrado ainda. Você pode criar novos arquivos!)"
+
+    system_prompt = f"""Você é o Agente Tomate IA, o assistente programador web do painel TomateCP.
+Você roda diretamente na Box Linux do usuário gerenciando o site '{site}'.
+Você é um desenvolvedor full-stack experiente, focado em código limpo, moderno, responsivo e sem dependências pesadas desnecessárias.
+
+Arquivos existentes no site '{site}':
+{files_summary}
+
+Conteúdo dos arquivos atuais do site:
+{context_str}
+
+DIRETRIZES DE RESPOSTA:
+1. Explique brevemente o que você fez ou propôs de forma educada, clara e direta em Português (Brasil).
+2. Se você criar ou alterar arquivos, você DEVE OBRIGATORIAMENTE formatar o arquivo completo dentro de um bloco no seguinte formato exato:
+```FILE: caminho/do/arquivo.ext
+conteudo completo do arquivo aqui
+```
+3. NUNCA coloque código parcial ou com reticências dentro do bloco ```FILE: ...```. Forneça o arquivo COMPLETO para que ele possa ser salvo diretamente no servidor.
+4. Você pode sugerir múltiplos blocos ```FILE: ...``` se precisar alterar HTML, CSS e JS juntos.
+5. Seja objetivo, criativo e priorize alta qualidade estética e usabilidade."""
+
+    cfg = load_config()
+    try:
+        reply = await call_llm(prompt, system_prompt, history, cfg)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"success": False, "message": f"Erro na IA: {str(e)}"})
+
+    proposals = extract_file_proposals(reply)
+    changes = []
+    for prop in proposals:
+        rel = prop["path"].lstrip("/")
+        new_text = prop["content"]
+        old_text = read_text_safe(root, rel) or ""
+        diff_text = generate_diff(old_text, new_text, rel)
+        changes.append({
+            "path": rel,
+            "content": new_text,
+            "diff": diff_text,
+            "is_new": not bool(old_text)
+        })
+
+    return {
+        "success": True,
+        "reply": reply,
+        "changes": changes
+    }
+
+
+@app.post("/api/ai/apply")
+async def api_ai_apply(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "JSON inválido."})
+
+    site = (data.get("site") or "").strip()
+    changes = data.get("changes") or []
+
+    if not site:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Site não especificado."})
+    if not changes:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Nenhuma alteração para aplicar."})
+
+    root = get_site_root(site)
+    if not root:
+        return JSONResponse(status_code=404, content={"success": False, "message": f"Site '{site}' não encontrado."})
+
+    applied_count = 0
+    for ch in changes:
+        rel_path = ch.get("path", "").lstrip("/")
+        content = ch.get("content", "")
+        if not rel_path:
+            continue
+        backup_file(root, rel_path)
+        ok = write_text_safe(root, rel_path, content)
+        if ok:
+            applied_count += 1
+
+    return {
+        "success": True,
+        "message": f"Sucesso! {applied_count} arquivo(s) atualizado(s) no site '{site}'."
+    }
+
+
+@app.post("/api/ai/rollback")
+async def api_ai_rollback(request: Request):
+    require_auth(request, config)
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"success": False, "message": "JSON inválido."})
+
+    site = (data.get("site") or "").strip()
+    path = (data.get("path") or "").lstrip("/")
+
+    if not site or not path:
+        return JSONResponse(status_code=400, content={"success": False, "message": "Site e caminho são obrigatórios."})
+
+    root = get_site_root(site)
+    if not root:
+        return JSONResponse(status_code=404, content={"success": False, "message": f"Site '{site}' não encontrado."})
+
+    msg = rollback_file(root, path)
+    if msg:
+        return {"success": True, "message": f"Arquivo '{path}' restaurado para a versão anterior com sucesso!"}
+    else:
+        return JSONResponse(status_code=400, content={"success": False, "message": f"Nenhum backup encontrado para '{path}'."})
+
 
 
 if __name__ == "__main__":

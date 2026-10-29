@@ -13,5 +13,9 @@
   "www_root_dir": "/var/www",
   "nginx_bin": "/usr/sbin/nginx",
   "systemctl_bin": "/bin/systemctl",
-  "tunnel_cname": "ce28d5bc-f161-4c93-adcf-c6c6c44b4991.cfargotunnel.com"
+  "tunnel_cname": "ce28d5bc-f161-4c93-adcf-c6c6c44b4991.cfargotunnel.com",
+  "ai_provider": "openrouter",
+  "openrouter_api_key": "",
+  "ai_model": "cohere/north-mini-code:free",
+  "ollama_base_url": "http://192.168.1.100:11434"
 }
