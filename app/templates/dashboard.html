@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
 {% block title %}Dashboard — {{ panel_name }}{% endblock %}
-{% block header_title %}Visão Geral do Servidor{% endblock %}
+{% block header_title %}Visão Geral{% endblock %}
 
 {% block header_actions %}
 <a href="/sites" class="btn btn-primary btn-sm">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    <span class="btn-text-desktop">Adicionar Site</span>
+    <span class="btn-text-desktop">Novo Site</span>
     <span class="btn-text-mobile">Novo</span>
 </a>
 {% endblock %}
@@ -118,40 +118,48 @@
         <div class="card-header" style="margin-bottom: 16px;">
             <span class="card-title">
                 <svg class="card-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                Ações Rápidas do Servidor
+                Ações Rápidas do Sistema
             </span>
-            <span class="badge badge-success">Atalhos TV Box</span>
+            <span class="badge badge-neutral">Atalhos</span>
         </div>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
             <button type="button" class="btn btn-outline" style="justify-content: flex-start; padding: 12px 16px; border-radius: 10px;" onclick="triggerDropCaches()">
-                <span style="font-size: 20px; margin-right: 8px;">🧹</span>
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(34, 197, 94, 0.12); display: flex; align-items: center; justify-content: center; color: var(--color-accent); margin-right: 12px; flex-shrink: 0;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z"/><path d="m5 2 5 5"/><path d="M2 13h15"/><path d="M22 20a2 2 0 1 1-4 0c0-1.6 1.7-2.6 2-4 .3 1.4 2 2.4 2 4Z"/></svg>
+                </div>
                 <div style="text-align: left;">
-                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Limpar Cache RAM</strong>
-                    <span style="font-size: 11px; color: var(--color-text-subtle);">Liberar memória ociosa</span>
+                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Otimizar Memória</strong>
+                    <span style="font-size: 11px; color: var(--color-text-subtle);">Liberar cache RAM (drop_caches)</span>
                 </div>
             </button>
 
             <button type="button" class="btn btn-outline" style="justify-content: flex-start; padding: 12px 16px; border-radius: 10px;" onclick="openModal('modal-web-terminal')">
-                <span style="font-size: 20px; margin-right: 8px;">💻</span>
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(59, 130, 246, 0.12); display: flex; align-items: center; justify-content: center; color: #60A5FA; margin-right: 12px; flex-shrink: 0;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                </div>
                 <div style="text-align: left;">
-                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Mini Web Terminal</strong>
-                    <span style="font-size: 11px; color: var(--color-text-subtle);">Executar comandos bash</span>
+                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Terminal Web</strong>
+                    <span style="font-size: 11px; color: var(--color-text-subtle);">Executar comandos shell bash</span>
                 </div>
             </button>
 
             <a href="/backups" class="btn btn-outline" style="justify-content: flex-start; padding: 12px 16px; border-radius: 10px; text-decoration: none;">
-                <span style="font-size: 20px; margin-right: 8px;">📦</span>
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(239, 68, 68, 0.12); display: flex; align-items: center; justify-content: center; color: var(--color-primary); margin-right: 12px; flex-shrink: 0;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                </div>
                 <div style="text-align: left;">
-                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Backups em 1 Clique</strong>
-                    <span style="font-size: 11px; color: var(--color-text-subtle);">Salvar sites e bancos</span>
+                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Backup</strong>
+                    <span style="font-size: 11px; color: var(--color-text-subtle);">Snapshots e restauração</span>
                 </div>
             </a>
 
             <button type="button" class="btn btn-outline" style="justify-content: flex-start; padding: 12px 16px; border-radius: 10px;" onclick="triggerRebootConfirm()">
-                <span style="font-size: 20px; margin-right: 8px;">🔄</span>
+                <div style="width: 32px; height: 32px; border-radius: 6px; background: rgba(245, 158, 11, 0.12); display: flex; align-items: center; justify-content: center; color: var(--color-warning); margin-right: 12px; flex-shrink: 0;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                </div>
                 <div style="text-align: left;">
-                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Reiniciar TV Box</strong>
-                    <span style="font-size: 11px; color: var(--color-text-subtle);">Reboot limpo e seguro</span>
+                    <strong style="display: block; font-size: 13px; color: #FFFFFF;">Reiniciar Servidor</strong>
+                    <span style="font-size: 11px; color: var(--color-text-subtle);">Reinício limpo do sistema</span>
                 </div>
             </button>
         </div>

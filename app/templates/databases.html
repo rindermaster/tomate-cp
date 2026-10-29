@@ -5,12 +5,12 @@
 
 {% block header_actions %}
 <button class="btn btn-primary btn-sm" onclick="openNewSqliteModal()">
-    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-    Novo Banco SQLite
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    Novo SQLite
 </button>
 <button class="btn btn-outline btn-sm" onclick="openNewMariadbModal()">
-    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-    Novo Banco MariaDB
+    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    Novo MariaDB
 </button>
 {% endblock %}
 
@@ -24,9 +24,9 @@
                     <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                 </div>
                 <div>
-                    <h3 style="font-size: 15px; font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">Bancos de Dados Ultra-Otimizados</h3>
-                    <p style="font-size: 13px; color: var(--color-text-muted);">
-                        O <strong>SQLite</strong> roda embutido nos arquivos com <strong>0 MB de RAM ocioso</strong>. O <strong>MariaDB</strong> roda tunado especificamente para TV Box.
+                    <h3 style="font-size: 14px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.01em; margin-bottom: 2px;">Motores de Banco de Dados</h3>
+                    <p style="font-size: 12.5px; color: var(--color-text-muted); line-height: 1.4;">
+                        Gerenciamento nativo de bancos <strong>SQLite</strong> sem consumo de memória ociosa e integração com instâncias <strong>MariaDB</strong> otimizadas para baixo consumo.
                     </p>
                 </div>
             </div>
@@ -42,10 +42,10 @@
     <!-- Tabs Navigation -->
     <div style="display: flex; gap: 8px; border-bottom: 1px solid var(--color-border); padding-bottom: 8px;">
         <button id="tab-btn-sqlite" class="btn btn-primary btn-sm" onclick="switchDbTab('sqlite')">
-            🪶 SQLite ({{ sqlite_dbs|length }} bancos)
+            SQLite ({{ sqlite_dbs|length }})
         </button>
         <button id="tab-btn-mariadb" class="btn btn-outline btn-sm" onclick="switchDbTab('mariadb')">
-            🐬 MariaDB / MySQL ({{ mariadb_dbs|length }} bancos)
+            MariaDB ({{ mariadb_dbs|length }})
         </button>
     </div>
 
