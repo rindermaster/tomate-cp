@@ -929,7 +929,8 @@ conteudo completo do arquivo aqui
             "path": rel,
             "content": new_text,
             "diff": diff_text,
-            "is_new": not bool(old_text)
+            "is_new": not bool(old_text),
+            "exists": bool(old_text)
         })
 
     return {

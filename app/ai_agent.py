@@ -5,6 +5,7 @@ Connects to OpenRouter (Cohere, DeepSeek, Llama, Qwen, Claude, GPT), Ollama loca
 """
 
 import os
+import re
 import json
 import difflib
 import time
@@ -296,15 +297,18 @@ def extract_file_proposals(llm_output: str) -> List[Dict[str, str]]:
     current_path = ""
     current_content = []
     
+    pattern = re.compile(r"^[\\`#*\s]*(?:[a-zA-Z0-9_-]+\s+)?FILE:\s*([^\s`]+)", re.IGNORECASE)
+
     for line in lines:
         stripped = line.strip()
         if not in_file:
-            if stripped.startswith("```FILE:") or stripped.startswith("```file:") or stripped.startswith("### FILE:"):
-                current_path = stripped.split(":", 1)[1].strip()
+            m = pattern.match(stripped)
+            if m:
+                current_path = m.group(1).strip("`* :")
                 in_file = True
                 current_content = []
         else:
-            if stripped == "```":
+            if stripped.startswith("```") or stripped.startswith("\\```") or (stripped.startswith("###") and "FILE:" in stripped):
                 in_file = False
                 proposals.append({
                     "path": current_path,
@@ -312,7 +316,18 @@ def extract_file_proposals(llm_output: str) -> List[Dict[str, str]]:
                 })
                 current_path = ""
                 current_content = []
+                # Check if this line starts another file proposal immediately
+                m = pattern.match(stripped)
+                if m:
+                    current_path = m.group(1).strip("`* :")
+                    in_file = True
             else:
                 current_content.append(line)
-                
+
+    if in_file and current_content:
+        proposals.append({
+            "path": current_path,
+            "content": "\n".join(current_content)
+        })
+
     return proposals

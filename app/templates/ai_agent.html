@@ -708,7 +708,15 @@ async function handleSendMessage(e) {
             botMsgEl.className = "ai-message assistant";
             
             // Format text (simple markdown line breaks)
-            let formattedText = escapeHtml(data.reply).replace(/\n/g, "<br>");
+            let cleanReply = data.reply || "";
+            if (data.changes && data.changes.length > 0) {
+                cleanReply = cleanReply.replace(/^[\\`#*\s]*(?:[a-zA-Z0-9_-]+\s+)?FILE:[\s\S]*?(?:```|\\```|$)/gim, "").trim();
+                cleanReply = cleanReply.replace(/```[a-z]*\s*```/gi, "").trim();
+                if (!cleanReply) {
+                    cleanReply = "Aqui estão as alterações propostas para os arquivos do seu site:";
+                }
+            }
+            let formattedText = escapeHtml(cleanReply).replace(/\n/g, "<br>");
             
             let changesHtml = "";
             if (data.changes && data.changes.length > 0) {
