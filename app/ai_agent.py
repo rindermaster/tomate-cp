@@ -41,25 +41,25 @@ PROVIDERS_CONFIG = {
         "key_placeholder": "gsk_...",
         "key_url": "https://console.groq.com/keys",
         "key_help": "Crie sua conta gratuita no Groq Cloud e gere uma chave de API em menos de 1 minuto sem cartão de crédito.",
-        "default_model": "llama-3.3-70b-versatile",
+        "default_model": "qwen/qwen3.8-27b",
         "models": [
             {
-                "id": "llama-3.3-70b-versatile",
-                "name": "Meta Llama 3.3 70B Versatile",
-                "badge": "100% Grátis • Rápido & Inteligente",
-                "description": "Modelo de 70B parâmetros de ponta da Meta com velocidade instantânea."
+                "id": "qwen/qwen3.8-27b",
+                "name": "Qwen 3.8 27B (Recomendado)",
+                "badge": "100% Grátis • Especialista em Código",
+                "description": "Última geração Qwen no Groq. Excelente raciocínio e síntese de código para desenvolvimento web."
             },
             {
-                "id": "qwen-2.5-coder-32b",
-                "name": "Qwen 2.5 Coder 32B",
-                "badge": "100% Grátis • Mestre em Código",
-                "description": "Especialista em desenvolvimento de sites, PHP, JS, CSS e HTML."
+                "id": "openai/gpt-oss-120b",
+                "name": "OpenAI GPT OSS 120B",
+                "badge": "100% Grátis • Raciocínio Profundo",
+                "description": "Modelo massivo de 120B parâmetros de código aberto no Groq para problemas complexos."
             },
             {
-                "id": "llama-3.1-8b-instant",
-                "name": "Meta Llama 3.1 8B Instant",
-                "badge": "100% Grátis • Instantâneo",
-                "description": "Respostas em milissegundos para pequenas correções e edições rápidas."
+                "id": "openai/gpt-oss-20b",
+                "name": "OpenAI GPT OSS 20B",
+                "badge": "100% Grátis • Super Veloz",
+                "description": "Respostas ultrarrápidas em milissegundos para correções pontuais e edições de código."
             }
         ]
     },
@@ -238,6 +238,18 @@ PROVIDERS_CONFIG = {
 
 # Backward compatibility alias
 POPULAR_MODELS = PROVIDERS_CONFIG["groq"]["models"] + PROVIDERS_CONFIG["openrouter"]["models"]
+
+DEPRECATED_MODELS_FALLBACK = {
+    "llama-3.3-70b-versatile": "qwen/qwen3.8-27b",
+    "qwen-2.5-coder-32b": "qwen/qwen3.8-27b",
+    "llama-3.1-8b-instant": "openai/gpt-oss-20b",
+    "llama-3.1-70b-versatile": "openai/gpt-oss-120b",
+    "llama3-70b-8192": "openai/gpt-oss-120b",
+    "llama3-8b-8192": "openai/gpt-oss-20b",
+    "mixtral-8x7b-32768": "qwen/qwen3.8-27b",
+    "gemma-7b-it": "qwen/qwen3.8-27b",
+    "gemma2-9b-it": "qwen/qwen3.8-27b",
+}
 
 def has_configured_key(cfg: Dict[str, Any], provider: str) -> bool:
     if provider == "ollama":
@@ -431,7 +443,10 @@ async def call_llm(
 
     model = config.get("ai_model")
     if not model or model == "custom":
-        model = prov_meta.get("default_model", "llama-3.3-70b-versatile")
+        model = prov_meta.get("default_model", "qwen/qwen3.8-27b")
+
+    if provider == "groq" and model in DEPRECATED_MODELS_FALLBACK:
+        model = DEPRECATED_MODELS_FALLBACK[model]
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in chat_history[-6:]:
@@ -492,6 +507,24 @@ async def call_llm(
             resp = await client.post(url, json=payload, headers=headers)
         except Exception as net_err:
             raise RuntimeError(f"Erro de conexão com o provedor {prov_meta.get('name')}: {str(net_err)}")
+
+        if resp.status_code in (400, 404) and provider == "groq" and model != "qwen/qwen3.8-27b":
+            # Auto-recuperação: se o Groq desativou o modelo, tenta automaticamente o Qwen 3.8 27B
+            fallback_model = "qwen/qwen3.8-27b"
+            retry_payload = {**payload, "model": fallback_model}
+            try:
+                retry_resp = await client.post(url, json=retry_payload, headers=headers)
+                if retry_resp.status_code == 200:
+                    try:
+                        cfg = load_config()
+                        cfg["ai_model"] = fallback_model
+                        save_config(cfg)
+                    except Exception:
+                        pass
+                    data = retry_resp.json()
+                    return data["choices"][0]["message"]["content"]
+            except Exception:
+                pass
 
         if resp.status_code != 200:
             err_data = resp.json().get("error", {}) if resp.text.startswith("{") else {}

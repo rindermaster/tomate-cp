@@ -1048,7 +1048,12 @@
 
                 <!-- 2. Modelo de Linguagem (LLM) -->
                 <div class="form-group">
-                    <label class="form-label" style="font-weight: 600; color: #F1F5F9;">Modelo de Linguagem (LLM)</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label class="form-label" style="font-weight: 600; color: #F1F5F9; margin-bottom: 0;">Modelo de Linguagem (LLM)</label>
+                        <button type="button" id="btn-fetch-live-models" class="btn btn-sm btn-outline" onclick="fetchLiveModels()" style="font-size: 11px; padding: 2px 7px; color: #94A3B8; display: none;" title="Buscar modelos ativos na sua conta Groq">
+                            🔄 Atualizar Modelos
+                        </button>
+                    </div>
                     <select id="setting-model" class="form-control" onchange="onModelChanged()">
                         <!-- Preenchido dinamicamente via JS -->
                     </select>
@@ -1765,6 +1770,10 @@ function onProviderChanged() {
     const pdata = providersData[provider] || providersData["groq"];
 
     // 1. Descrição do provedor
+    const btnLive = document.getElementById("btn-fetch-live-models");
+    if (btnLive) {
+        btnLive.style.display = (provider === "groq") ? "inline-block" : "none";
+    }
     const descEl = document.getElementById("provider-desc-text");
     if (descEl) {
         descEl.innerText = pdata.description || "";
@@ -1848,6 +1857,36 @@ function onProviderChanged() {
         if (helpBox) {
             helpBox.innerText = pdata.key_help || "";
         }
+    }
+}
+
+async function fetchLiveModels() {
+    const btn = document.getElementById("btn-fetch-live-models");
+    const provider = document.getElementById("setting-provider").value;
+    if (!btn) return;
+    btn.disabled = true;
+    btn.innerText = "⏳ Buscando...";
+    try {
+        const res = await fetch(`/api/ai/live-models?provider=${provider}`);
+        const data = await res.json();
+        if (data.success && data.models && data.models.length > 0) {
+            const modelSelect = document.getElementById("setting-model");
+            let opts = "";
+            data.models.forEach(m => {
+                const isSel = (m === currentModel || (currentModel.includes("qwen") && m.includes("qwen"))) ? "selected" : "";
+                opts += `<option value="${m}" ${isSel}>${m} [Ativo na sua Conta]</option>`;
+            });
+            opts += `<option value="custom">Outro modelo (digitar manualmente)...</option>`;
+            modelSelect.innerHTML = opts;
+            showToast(`${data.models.length} modelos ativos encontrados no Groq!`);
+        } else {
+            showToast(data.message || "Não foi possível listar modelos.", "warning");
+        }
+    } catch (e) {
+        showToast("Erro ao conectar à API de modelos.", "danger");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "🔄 Atualizar Modelos";
     }
 }
 

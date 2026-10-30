@@ -787,7 +787,7 @@ async def ai_agent_page(request: Request, site: Optional[str] = None):
     if current_provider not in PROVIDERS_CONFIG:
         current_provider = "groq"
     prov_meta = PROVIDERS_CONFIG[current_provider]
-    current_model = cfg.get("ai_model") or prov_meta.get("default_model", "llama-3.3-70b-versatile")
+    current_model = cfg.get("ai_model") or prov_meta.get("default_model", "qwen/qwen3.8-27b")
     masked_keys = get_masked_keys(cfg)
     has_active_key = has_configured_key(cfg, current_provider)
     ollama_url = cfg.get("ollama_base_url", "http://127.0.0.1:11434")
@@ -814,7 +814,7 @@ async def api_ai_get_config(request: Request):
     if current_provider not in PROVIDERS_CONFIG:
         current_provider = "groq"
     prov_meta = PROVIDERS_CONFIG[current_provider]
-    current_model = cfg.get("ai_model") or prov_meta.get("default_model", "llama-3.3-70b-versatile")
+    current_model = cfg.get("ai_model") or prov_meta.get("default_model", "qwen/qwen3.8-27b")
     return {
         "success": True,
         "provider": current_provider,
@@ -873,6 +873,31 @@ async def api_ai_save_config(request: Request):
         "has_active_key": has_configured_key(cfg, active_p),
         "masked_keys": get_masked_keys(cfg)
     }
+
+
+
+@app.get("/api/ai/live-models")
+async def api_ai_live_models(request: Request, provider: str = "groq"):
+    require_auth(request, config)
+    cfg = load_config()
+    if provider == "groq":
+        key = (cfg.get("groq_api_key") or "").strip()
+        if not key:
+            return {"success": False, "message": "Chave do Groq não configurada."}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                r = await client.get("https://api.groq.com/openai/v1/models", headers={"Authorization": f"Bearer {key}"})
+                if r.status_code == 200:
+                    raw_data = r.json().get("data", [])
+                    chat_models = [
+                        m["id"] for m in raw_data 
+                        if not m["id"].startswith("whisper") and "guard" not in m["id"].lower()
+                    ]
+                    return {"success": True, "models": sorted(chat_models)}
+                return {"success": False, "message": f"Erro ao listar modelos: {r.text}"}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+    return {"success": False, "message": "Provedor não suporta listagem dinâmica."}
 
 
 @app.post("/api/ai/chat")
