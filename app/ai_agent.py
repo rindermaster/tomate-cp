@@ -41,7 +41,7 @@ PROVIDERS_CONFIG = {
         "key_placeholder": "gsk_...",
         "key_url": "https://console.groq.com/keys",
         "key_help": "Crie sua conta gratuita no Groq Cloud e gere uma chave de API em menos de 1 minuto sem cartão de crédito.",
-        "default_model": "qwen/qwen3.8-27b",
+        "default_model": "openai/gpt-oss-120b",
         "models": [
             {
                 "id": "qwen/qwen3.8-27b",
@@ -458,6 +458,8 @@ async def call_llm(
         "messages": messages,
         "temperature": 0.2
     }
+    if provider == "groq" and model == "qwen/qwen3.8-27b":
+        payload["max_tokens"] = 900
 
     if provider == "ollama":
         base_url = config.get("ollama_base_url", "http://127.0.0.1:11434").rstrip("/")
@@ -508,10 +510,12 @@ async def call_llm(
         except Exception as net_err:
             raise RuntimeError(f"Erro de conexão com o provedor {prov_meta.get('name')}: {str(net_err)}")
 
-        if resp.status_code in (400, 404) and provider == "groq" and model != "qwen/qwen3.8-27b":
-            # Auto-recuperação: se o Groq desativou o modelo, tenta automaticamente o Qwen 3.8 27B
-            fallback_model = "qwen/qwen3.8-27b"
+        if resp.status_code in (400, 404, 429) and provider == "groq" and model != "openai/gpt-oss-120b":
+            # Auto-recuperação: se o Groq desativou o modelo ou atingiu limite de tokens (429), tenta o GPT-OSS 120B
+            fallback_model = "openai/gpt-oss-120b"
             retry_payload = {**payload, "model": fallback_model}
+            if "max_tokens" in retry_payload:
+                del retry_payload["max_tokens"]
             try:
                 retry_resp = await client.post(url, json=retry_payload, headers=headers)
                 if retry_resp.status_code == 200:
