@@ -671,6 +671,8 @@ def process_ai_proposals(reply: str, root: Path) -> List[Dict[str, Any]]:
 
     for m in block_pattern.finditer(reply):
         path = m.group(1).strip("`* :").lstrip("/")
+        if path.startswith("<") or ">" in path or ("." not in path and "/" not in path):
+            path = "index.html" 
         body = m.group(2)
         pairs = list(pair_pattern.finditer(body))
         if not pairs:
