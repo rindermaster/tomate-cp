@@ -29,50 +29,239 @@ IGNORED_DIRS = {
     "__pycache__", "cache", "uploads", "logs"
 }
 
-POPULAR_MODELS = [
-    {
-        "id": "cohere/north-mini-code:free",
-        "name": "Cohere North Mini Code (Grátis)",
-        "badge": "100% Grátis",
-        "description": "Modelo de código rápido e eficiente do OpenRouter com cota gratuita diária."
+PROVIDERS_CONFIG = {
+    "groq": {
+        "id": "groq",
+        "name": "Groq Cloud (100% Gratuito & Ultra-Rápido)",
+        "badge": "Recomendado Grátis",
+        "description": "Velocidade extrema de até 500 tokens/segundo. Cota gratuita sem necessidade de cartão de crédito.",
+        "api_url": "https://api.groq.com/openai/v1/chat/completions",
+        "key_field": "groq_api_key",
+        "key_name": "Chave de API do Groq",
+        "key_placeholder": "gsk_...",
+        "key_url": "https://console.groq.com/keys",
+        "key_help": "Crie sua conta gratuita no Groq Cloud e gere uma chave de API em menos de 1 minuto sem cartão de crédito.",
+        "default_model": "llama-3.3-70b-versatile",
+        "models": [
+            {
+                "id": "llama-3.3-70b-versatile",
+                "name": "Meta Llama 3.3 70B Versatile",
+                "badge": "100% Grátis • Rápido & Inteligente",
+                "description": "Modelo de 70B parâmetros de ponta da Meta com velocidade instantânea."
+            },
+            {
+                "id": "qwen-2.5-coder-32b",
+                "name": "Qwen 2.5 Coder 32B",
+                "badge": "100% Grátis • Mestre em Código",
+                "description": "Especialista em desenvolvimento de sites, PHP, JS, CSS e HTML."
+            },
+            {
+                "id": "llama-3.1-8b-instant",
+                "name": "Meta Llama 3.1 8B Instant",
+                "badge": "100% Grátis • Instantâneo",
+                "description": "Respostas em milissegundos para pequenas correções e edições rápidas."
+            }
+        ]
     },
-    {
-        "id": "google/gemma-4-26b-a4b-it:free",
-        "name": "Google Gemma 4 26B (Grátis)",
-        "badge": "100% Grátis",
-        "description": "Excelente para lógica de programação e estruturação web."
+    "openrouter": {
+        "id": "openrouter",
+        "name": "OpenRouter (Grátis + Modelos Comerciais)",
+        "badge": "Múltiplos Modelos",
+        "description": "Hub completo com modelos 100% gratuitos (:free) e líderes mundiais (Claude 3.5, GPT-4o, DeepSeek).",
+        "api_url": "https://openrouter.ai/api/v1/chat/completions",
+        "key_field": "openrouter_api_key",
+        "key_name": "Chave de API do OpenRouter",
+        "key_placeholder": "sk-or-v1-...",
+        "key_url": "https://openrouter.ai/keys",
+        "key_help": "Gere sua chave no OpenRouter. Modelos com sufixo :free são 100% gratuitos.",
+        "default_model": "meta-llama/llama-3.3-70b-instruct:free",
+        "models": [
+            {
+                "id": "meta-llama/llama-3.3-70b-instruct:free",
+                "name": "Meta Llama 3.3 70B (Grátis)",
+                "badge": "100% Grátis",
+                "description": "Modelo poderoso de 70 bilhões de parâmetros da Meta sem custo."
+            },
+            {
+                "id": "google/gemma-4-26b-a4b-it:free",
+                "name": "Google Gemma 4 26B (Grátis)",
+                "badge": "100% Grátis",
+                "description": "Excelente para lógica de programação e estruturação web."
+            },
+            {
+                "id": "cohere/north-mini-code:free",
+                "name": "Cohere North Mini Code (Grátis)",
+                "badge": "100% Grátis",
+                "description": "Modelo de código rápido e eficiente com cota diária gratuita."
+            },
+            {
+                "id": "deepseek/deepseek-chat",
+                "name": "DeepSeek V3 (Recomendado)",
+                "badge": "Super Barato",
+                "description": "Excelente raciocínio e código por centavos por milhão de tokens."
+            },
+            {
+                "id": "anthropic/claude-3.5-sonnet",
+                "name": "Anthropic Claude 3.5 Sonnet",
+                "badge": "Padrão Ouro",
+                "description": "Líder absoluto em engenharia de software e design de interfaces."
+            },
+            {
+                "id": "openai/gpt-4o-mini",
+                "name": "OpenAI GPT-4o Mini",
+                "badge": "Rápido & Inteligente",
+                "description": "Modelo veloz e refinado da OpenAI."
+            }
+        ]
     },
-    {
-        "id": "meta-llama/llama-3.3-70b-instruct:free",
-        "name": "Meta Llama 3.3 70B (Grátis)",
-        "badge": "100% Grátis",
-        "description": "Modelo poderoso de 70 bilhões de parâmetros da Meta."
+    "gemini": {
+        "id": "gemini",
+        "name": "Google Gemini (Gratuito no Google AI Studio)",
+        "badge": "Grátis no AI Studio",
+        "description": "Conexão direta com a API do Google Gemini com limites gratuitos generosos de uso.",
+        "api_url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "key_field": "gemini_api_key",
+        "key_name": "Chave de API do Google AI Studio",
+        "key_placeholder": "AIzaSy...",
+        "key_url": "https://aistudio.google.com/app/apikey",
+        "key_help": "Gere sua API key gratuitamente no Google AI Studio (requer conta Google).",
+        "default_model": "gemini-1.5-flash",
+        "models": [
+            {
+                "id": "gemini-1.5-flash",
+                "name": "Google Gemini 1.5 Flash",
+                "badge": "Grátis • Super Veloz",
+                "description": "Velocidade impressionante com janela de contexto enorme."
+            },
+            {
+                "id": "gemini-2.0-flash-exp",
+                "name": "Google Gemini 2.0 Flash (Experimental)",
+                "badge": "Nova Geração • Grátis",
+                "description": "Último lançamento do Google, altamente capaz para programação."
+            },
+            {
+                "id": "gemini-1.5-pro",
+                "name": "Google Gemini 1.5 Pro",
+                "badge": "Raciocínio Avançado",
+                "description": "Alta capacidade analítica para arquitetura de projetos e código complexo."
+            }
+        ]
     },
-    {
-        "id": "deepseek/deepseek-chat",
-        "name": "DeepSeek V3 (Recomendado)",
-        "badge": "Super Barato",
-        "description": "Excelente raciocínio e código por centavos por milhão de tokens."
+    "deepseek": {
+        "id": "deepseek",
+        "name": "DeepSeek Oficial (api.deepseek.com)",
+        "badge": "Super Econômico",
+        "description": "Acesso direto à API original da DeepSeek com custo irrisório e alta qualidade.",
+        "api_url": "https://api.deepseek.com/chat/completions",
+        "key_field": "deepseek_api_key",
+        "key_name": "Chave de API da DeepSeek",
+        "key_placeholder": "sk-...",
+        "key_url": "https://platform.deepseek.com/api_keys",
+        "key_help": "Adicione créditos na plataforma oficial da DeepSeek (R$ 10 duram meses).",
+        "default_model": "deepseek-chat",
+        "models": [
+            {
+                "id": "deepseek-chat",
+                "name": "DeepSeek V3 (Chat / Coder)",
+                "badge": "Melhor Custo-Benefício",
+                "description": "Modelo de 671B parâmetros de última geração."
+            },
+            {
+                "id": "deepseek-reasoner",
+                "name": "DeepSeek R1 (Raciocínio Profundo)",
+                "badge": "Pensamento Passo a Passo",
+                "description": "Gera cadeia de raciocínio antes de produzir o código final."
+            }
+        ]
     },
-    {
-        "id": "qwen/qwen-2.5-coder-32b-instruct",
-        "name": "Qwen 2.5 Coder 32B",
-        "badge": "Especialista em Código",
-        "description": "Um dos melhores modelos de código abertos do mundo."
+    "xai": {
+        "id": "xai",
+        "name": "xAI Grok Oficial (api.x.ai)",
+        "badge": "Grok Oficial",
+        "description": "API oficial do Grok desenvolvida pela xAI de Elon Musk.",
+        "api_url": "https://api.x.ai/v1/chat/completions",
+        "key_field": "xai_api_key",
+        "key_name": "Chave de API da xAI",
+        "key_placeholder": "xai-...",
+        "key_url": "https://console.x.ai/",
+        "key_help": "Gere sua chave de API no console oficial da xAI.",
+        "default_model": "grok-2-latest",
+        "models": [
+            {
+                "id": "grok-2-latest",
+                "name": "Grok 2 Latest",
+                "badge": "Poderoso & Atual",
+                "description": "Modelo topo de linha da xAI para desenvolvimento e raciocínio."
+            },
+            {
+                "id": "grok-beta",
+                "name": "Grok Beta",
+                "badge": "Rápido",
+                "description": "Versão otimizada para respostas rápidas de código."
+            }
+        ]
     },
-    {
-        "id": "openai/gpt-4o-mini",
-        "name": "OpenAI GPT-4o Mini",
-        "badge": "Rápido & Inteligente",
-        "description": "Modelo veloz e refinado da OpenAI via OpenRouter."
-    },
-    {
-        "id": "anthropic/claude-3.5-sonnet",
-        "name": "Anthropic Claude 3.5 Sonnet",
-        "badge": "Padrão Ouro",
-        "description": "Líder absoluto em engenharia de software e design de interfaces."
+    "ollama": {
+        "id": "ollama",
+        "name": "Ollama (Servidor Local na Rede)",
+        "badge": "Rede Local",
+        "description": "Conecta a qualquer computador na sua rede local (ex: seu PC ou Mac) rodando Ollama.",
+        "api_url": "",
+        "key_field": "",
+        "key_name": "",
+        "key_placeholder": "",
+        "key_url": "https://ollama.com",
+        "key_help": "Instale o Ollama no seu PC/Mac e execute 'ollama run qwen2.5-coder:7b'. Insira o IP do seu PC.",
+        "default_model": "qwen2.5-coder:7b",
+        "models": [
+            {
+                "id": "qwen2.5-coder:7b",
+                "name": "Qwen 2.5 Coder 7B (Local)",
+                "badge": "Especialista em Código",
+                "description": "Roda no seu PC/Mac conectado na mesma rede."
+            },
+            {
+                "id": "deepseek-coder:6.7b",
+                "name": "DeepSeek Coder 6.7B (Local)",
+                "badge": "Código",
+                "description": "Modelo clássico de código aberto."
+            },
+            {
+                "id": "llama3.2:3b",
+                "name": "Llama 3.2 3B (Local)",
+                "badge": "Leve",
+                "description": "Modelo ultraleve para PCs mais modestos."
+            }
+        ]
     }
-]
+}
+
+# Backward compatibility alias
+POPULAR_MODELS = PROVIDERS_CONFIG["groq"]["models"] + PROVIDERS_CONFIG["openrouter"]["models"]
+
+def has_configured_key(cfg: Dict[str, Any], provider: str) -> bool:
+    if provider == "ollama":
+        return True
+    prov = PROVIDERS_CONFIG.get(provider)
+    if not prov:
+        return False
+    field = prov.get("key_field", f"{provider}_api_key")
+    key = (cfg.get(field) or "").strip()
+    if not key and provider == "openrouter":
+        key = (cfg.get("openrouter_api_key") or "").strip()
+    return bool(key)
+
+def get_masked_keys(cfg: Dict[str, Any]) -> Dict[str, str]:
+    res = {}
+    for pid, pdata in PROVIDERS_CONFIG.items():
+        field = pdata.get("key_field")
+        if field:
+            val = (cfg.get(field) or "").strip()
+            if not val and pid == "openrouter":
+                val = (cfg.get("openrouter_api_key") or "").strip()
+            res[pid] = mask_api_key(val) if val else ""
+    return res
+
 
 def load_config() -> Dict[str, Any]:
     if CONFIG_PATH.exists():
@@ -235,56 +424,85 @@ async def call_llm(
     chat_history: List[Dict[str, str]],
     config: Dict[str, Any]
 ) -> str:
-    provider = config.get("ai_provider", "openrouter")
-    model = config.get("ai_model", "cohere/north-mini-code:free")
-    api_key = config.get("openrouter_api_key", "").strip()
-    
+    provider = config.get("ai_provider", "groq")
+    if provider not in PROVIDERS_CONFIG:
+        provider = "groq"
+    prov_meta = PROVIDERS_CONFIG[provider]
+
+    model = config.get("ai_model")
+    if not model or model == "custom":
+        model = prov_meta.get("default_model", "llama-3.3-70b-versatile")
+
     messages = [{"role": "system", "content": system_prompt}]
     for msg in chat_history[-6:]:
         messages.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
     messages.append({"role": "user", "content": prompt})
 
-    if provider == "openrouter":
-        if not api_key:
-            raise ValueError("Chave de API do OpenRouter não configurada. Insira sua chave nas configurações.")
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://tomatecp.zipdigital.site",
-            "X-Title": "TomateCP Mini Server AI Agent"
-        }
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": 0.2
-        }
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(url, json=payload, headers=headers)
-            if resp.status_code != 200:
-                err_data = resp.json().get("error", {}) if resp.text.startswith("{") else {}
-                err_msg = err_data.get("message", resp.text)
-                raise RuntimeError(f"OpenRouter Error ({resp.status_code}): {err_msg}")
-            data = resp.json()
-            return data["choices"][0]["message"]["content"]
-            
-    elif provider == "ollama":
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2
+    }
+
+    if provider == "ollama":
         base_url = config.get("ollama_base_url", "http://127.0.0.1:11434").rstrip("/")
         url = f"{base_url}/v1/chat/completions"
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": 0.2
-        }
         async with httpx.AsyncClient(timeout=90.0) as client:
-            resp = await client.post(url, json=payload)
+            try:
+                resp = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            except Exception as conn_err:
+                raise RuntimeError(
+                    f"Não foi possível conectar ao servidor Ollama em '{base_url}'. "
+                    f"Verifique se o Ollama está rodando no computador da rede e se o firewall permite a porta 11434. ({conn_err})"
+                )
             if resp.status_code != 200:
                 raise RuntimeError(f"Ollama Error ({resp.status_code}): {resp.text}")
             data = resp.json()
             return data["choices"][0]["message"]["content"]
 
-    else:
-        raise ValueError(f"Provedor '{provider}' não suportado.")
+    # Provedores de API na Nuvem (Groq, OpenRouter, Gemini, DeepSeek, xAI)
+    field = prov_meta.get("key_field", f"{provider}_api_key")
+    api_key = (config.get(field) or "").strip()
+    if not api_key and provider == "openrouter":
+        api_key = (config.get("openrouter_api_key") or "").strip()
+
+    if not api_key:
+        prov_name = prov_meta.get("name", provider)
+        key_url = prov_meta.get("key_url", "")
+        raise ValueError(
+            f"⚠️ Chave de API não configurada para o provedor '{prov_name}'.\n"
+            f"Por favor, abra as Configurações de IA (⚙️) no topo do painel e insira sua chave gratuita ou comercial.\n"
+            f"Link para obter sua chave: {key_url}"
+        )
+
+    url = prov_meta.get("api_url")
+    if not url:
+        raise ValueError(f"URL de API não definida para o provedor '{provider}'.")
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    if provider == "openrouter":
+        headers["HTTP-Referer"] = "https://tomatecp.zipdigital.site"
+        headers["X-Title"] = "TomateCP Mini Server AI Agent"
+
+    async with httpx.AsyncClient(timeout=90.0) as client:
+        try:
+            resp = await client.post(url, json=payload, headers=headers)
+        except Exception as net_err:
+            raise RuntimeError(f"Erro de conexão com o provedor {prov_meta.get('name')}: {str(net_err)}")
+
+        if resp.status_code != 200:
+            err_data = resp.json().get("error", {}) if resp.text.startswith("{") else {}
+            if isinstance(err_data, dict):
+                err_msg = err_data.get("message", resp.text)
+            else:
+                err_msg = str(err_data) or resp.text
+            raise RuntimeError(f"{prov_meta.get('name', provider)} Error ({resp.status_code}): {err_msg}")
+
+        data = resp.json()
+        return data["choices"][0]["message"]["content"]
 
 def extract_file_proposals(llm_output: str) -> List[Dict[str, str]]:
     """

@@ -761,8 +761,13 @@
                 {% endfor %}
             </select>
 
-            <span class="ai-model-pill" onclick="openModal('modal-ai-settings')" title="Configurar modelo de IA">
-                🤖 <span id="current-model-badge">{{ current_model.split('/')[-1] }}</span>
+            <span class="ai-model-pill" onclick="openModal('modal-ai-settings')" title="Configurar provedor e modelo de IA">
+                <span id="current-provider-tag" style="color: #F87171; font-weight: 700; margin-right: 4px;">{{ '⚡ Groq' if current_provider == 'groq' else ('🎁 OpenRouter' if current_provider == 'openrouter' else ('✨ Gemini' if current_provider == 'gemini' else ('🧠 DeepSeek' if current_provider == 'deepseek' else ('🪐 Grok' if current_provider == 'xai' else '💻 Ollama')))) }}</span>
+                <span id="current-model-badge">{{ current_model.split('/')[-1] }}</span>
+            </span>
+
+            <span id="header-missing-key-badge" class="badge" onclick="openModal('modal-ai-settings')" style="cursor: pointer; background: rgba(234, 179, 8, 0.2); color: #FACC15; border: 1px solid #CA8A04; font-size: 11px; padding: 3px 8px; border-radius: 6px; display: {% if has_active_key %}none{% else %}inline-flex{% endif %}; align-items: center; gap: 4px;" title="Chave de API necessária para usar">
+                ⚠️ Configurar Chave
             </span>
 
             <button type="button" class="btn btn-outline btn-sm" onclick="clearChat()" title="Limpar conversa" style="padding: 4px 7px;">
@@ -772,6 +777,33 @@
 
         <!-- Chat Thread Messages -->
         <div class="ai-chat-thread" id="ai-chat-thread">
+            <!-- Banner de Alerta de Chave de API Ausente -->
+            <div id="ai-onboarding-key-alert" style="background: linear-gradient(135deg, rgba(234, 179, 8, 0.15), rgba(239, 68, 68, 0.15)); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; display: {% if has_active_key %}none{% else %}block{% endif %};">
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                    <div style="font-size: 26px; line-height: 1;">⚡</div>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <h4 style="margin: 0; font-size: 13.5px; font-weight: 700; color: #FEF08A;">
+                                Configure sua Chave de API para Começar
+                            </h4>
+                            <span class="badge" style="background: #EAB308; color: #000; font-weight: 800; font-size: 9.5px; padding: 2px 6px; border-radius: 4px;">1º Uso</span>
+                        </div>
+                        <p style="margin: 0 0 10px 0; font-size: 12px; color: #E2E8F0; line-height: 1.45;">
+                            O Agente Tomate IA programa seus sites diretamente na Box. Para começar a gerar código, adicione uma chave de API gratuita. 
+                            Recomendamos o <strong style="color: #4ADE80;">Groq Cloud (100% Gratuito)</strong> que não exige cartão de crédito!
+                        </p>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="openModal('modal-ai-settings')" style="background: #EAB308; color: #000; border-color: #CA8A04; font-weight: 700; padding: 6px 14px; font-size: 12px; border-radius: 6px;">
+                                ⚙️ Inserir Chave de API Agora
+                            </button>
+                            <a href="https://console.groq.com/keys" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="font-size: 11.5px; padding: 5px 10px; border-radius: 6px; color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); text-decoration: none;">
+                                ⚡ Gerar Chave Grátis no Groq &nearr;
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Assistant Welcome Message (Compact) -->
             <div class="ai-msg assistant">
                 <div class="ai-msg-avatar">🍅</div>
@@ -983,66 +1015,91 @@
 </div>
 
 <!-- ========================================================================
-     MODAL: CONFIGURAÇÃO DE MODELOS & OPENROUTER
+     MODAL: CONFIGURAÇÃO DE MODELOS & PROVEDORES DE IA (GROQ, OPENROUTER, ETC.)
      ======================================================================== -->
 <div id="modal-ai-settings" class="modal-overlay">
-    <div class="modal-card" style="max-width: 520px; width: 95%;">
+    <div class="modal-card" style="max-width: 580px; width: 95%;">
         <div class="modal-header">
-            <h3 class="modal-title">⚙️ Configurações do Agente IA</h3>
+            <h3 class="modal-title">⚙️ Configurações do Agente Tomate IA</h3>
             <button type="button" class="modal-close" onclick="closeModal('modal-ai-settings')">&times;</button>
         </div>
         <form id="ai-settings-form" onsubmit="handleSaveAISettings(event)">
-            <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 16px;">
+                
+                <!-- Status da Chave Atual -->
+                <div id="modal-key-status-banner" style="padding: 10px 14px; border-radius: 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                    <!-- Preenchido dinamicamente via JS -->
+                </div>
+
+                <!-- 1. Provedor de IA -->
                 <div class="form-group">
-                    <label class="form-label">Provedor</label>
-                    <select id="setting-provider" class="form-control" onchange="toggleProviderSettings()">
-                        <option value="openrouter" selected>OpenRouter (Nuvem / Modelos Rápidos)</option>
-                        <option value="ollama">Ollama (Servidor Local na Rede)</option>
+                    <label class="form-label" style="font-weight: 600; color: #F1F5F9;">Provedor de Inteligência Artificial</label>
+                    <select id="setting-provider" class="form-control" onchange="onProviderChanged()">
+                        {% for pid, pdata in providers_config.items() %}
+                        <option value="{{ pid }}" {% if current_provider == pid %}selected{% endif %}>
+                            {{ pdata.name }} [{{ pdata.badge }}]
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <span id="provider-desc-text" style="font-size: 11.5px; color: #94A3B8; margin-top: 5px; display: block; line-height: 1.4;">
+                        <!-- Preenchido via JS -->
+                    </span>
+                </div>
+
+                <!-- 2. Modelo de Linguagem (LLM) -->
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: 600; color: #F1F5F9;">Modelo de Linguagem (LLM)</label>
+                    <select id="setting-model" class="form-control" onchange="onModelChanged()">
+                        <!-- Preenchido dinamicamente via JS -->
                     </select>
                 </div>
 
-                <div id="section-openrouter">
-                    <div class="form-group">
-                        <label class="form-label">Modelo de Linguagem (LLM)</label>
-                        <select id="setting-model" class="form-control">
-                            {% for m in popular_models %}
-                            <option value="{{ m.id }}" {% if current_model == m.id %}selected{% endif %}>
-                                {{ m.name }} [{{ m.badge }}]
-                            </option>
-                            {% endfor %}
-                            <option value="custom">Outro modelo (digitar manualmente)...</option>
-                        </select>
-                    </div>
+                <!-- Modelo Customizado -->
+                <div class="form-group" id="group-custom-model" style="display: none;">
+                    <label class="form-label">Identificador do Modelo Customizado</label>
+                    <input type="text" id="setting-custom-model" class="form-control" placeholder="ex: meta-llama/llama-3.3-70b-instruct">
+                </div>
 
-                    <div class="form-group" id="group-custom-model" style="display: none;">
-                        <label class="form-label">Identificador do Modelo Customizado</label>
-                        <input type="text" id="setting-custom-model" class="form-control" placeholder="ex: anthropic/claude-3.5-sonnet">
+                <!-- 3. Chave de API para Provedores Cloud -->
+                <div id="section-api-key" class="form-group">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label class="form-label" id="label-api-key" style="margin-bottom: 0; font-weight: 600; color: #F1F5F9;">
+                            Chave de API
+                        </label>
+                        <a id="link-get-api-key" href="#" target="_blank" rel="noopener" style="font-size: 11.5px; color: #38BDF8; text-decoration: none; font-weight: 600;">
+                            ⚡ Obter chave grátis &nearr;
+                        </a>
                     </div>
+                    <input type="password" id="setting-api-key" class="form-control" placeholder="Cole sua chave aqui...">
+                    <div id="api-key-help-box" style="margin-top: 6px; font-size: 11px; color: #94A3B8; line-height: 1.45;">
+                        <!-- Instruções específicas do provedor -->
+                    </div>
+                    <span style="font-size: 10.5px; color: #86EFAC; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+                        🔒 Sua chave fica salva exclusivamente na memória segura da sua Box (`chmod 600`).
+                    </span>
+                </div>
 
+                <!-- 4. Seção Ollama Local -->
+                <div id="section-ollama" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label">Chave de API do OpenRouter</label>
-                        <input type="password" id="setting-openrouter-key" class="form-control" placeholder="sk-or-v1-..." value="{{ masked_key or 'Segura na Box' }}">
-                        <span style="font-size: 11px; color: #86EFAC; margin-top: 4px; display: block;">
-                            🔒 Sua chave fica salva exclusivamente na sua Box (`chmod 600`) e nunca é enviada para o Git.
+                        <label class="form-label" style="font-weight: 600; color: #F1F5F9;">URL Base do Ollama no Computador</label>
+                        <input type="text" id="setting-ollama-url" class="form-control" value="{{ ollama_url or 'http://127.0.0.1:11434' }}" placeholder="ex: http://192.168.1.50:11434">
+                        <span style="font-size: 11px; color: #94A3B8; margin-top: 4px; display: block; line-height: 1.4;">
+                            💻 Digite o IP do seu computador na rede local onde o Ollama está rodando (ex: <code>http://192.168.1.50:11434</code>).
                         </span>
                     </div>
                 </div>
 
-                <div id="section-ollama" style="display: none;">
-                    <div class="form-group">
-                        <label class="form-label">URL Base do Ollama</label>
-                        <input type="text" id="setting-ollama-url" class="form-control" value="{{ ollama_url or 'http://127.0.0.1:11434' }}">
-                    </div>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" onclick="closeModal('modal-ai-settings')">Cancelar</button>
-                <button type="submit" class="btn btn-primary" style="background: #EF4444; border-color: #DC2626;">Salvar Configurações</button>
+                <button type="submit" class="btn btn-primary" style="background: #EF4444; border-color: #DC2626; font-weight: 700;">
+                    💾 Salvar e Ativar Provedor
+                </button>
             </div>
         </form>
     </div>
-</div>
-{% endblock %}
+</div>{% endblock %}
 
 {% block scripts %}
 <script>
@@ -1058,6 +1115,13 @@ let currentCodeMode = "diff";
 let currentActiveFile = "index.html";
 let currentRawFileContent = "";
 
+// Provedores de IA e Chaves
+const providersData = {{ providers_config | tojson }};
+let currentProvider = "{{ current_provider }}";
+let currentModel = "{{ current_model }}";
+let maskedKeys = {{ masked_keys | tojson }};
+let hasActiveKey = {{ 'true' if has_active_key else 'false' }};
+
 /* ==========================================================================
    INITIALIZATION
    ========================================================================== */
@@ -1065,6 +1129,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateExternalSiteLink();
     loadSiteFiles();
     refreshPreview();
+    onProviderChanged();
 });
 
 /* ==========================================================================
@@ -1413,6 +1478,12 @@ async function handleSendMessage(e) {
         return;
     }
 
+    if (!hasActiveKey && currentProvider !== 'ollama') {
+        showToast("⚠️ Configure sua chave de API primeiro para poder enviar mensagens!", "warning");
+        openModal("modal-ai-settings");
+        return;
+    }
+
     // Append User Message
     appendUserMessage(prompt);
     input.value = "";
@@ -1685,44 +1756,184 @@ function escapeHtml(text) {
 }
 
 /* ==========================================================================
-   AI SETTINGS MODAL
+   AI SETTINGS MODAL (GROQ, OPENROUTER, GEMINI, DEEPSEEK, OLLAMA)
    ========================================================================== */
-function toggleProviderSettings() {
-    const p = document.getElementById("setting-provider").value;
-    document.getElementById("section-openrouter").style.display = (p === "openrouter") ? "block" : "none";
-    document.getElementById("section-ollama").style.display = (p === "ollama") ? "block" : "none";
+function onProviderChanged() {
+    const providerSelect = document.getElementById("setting-provider");
+    if (!providerSelect) return;
+    const provider = providerSelect.value;
+    const pdata = providersData[provider] || providersData["groq"];
+
+    // 1. Descrição do provedor
+    const descEl = document.getElementById("provider-desc-text");
+    if (descEl) {
+        descEl.innerText = pdata.description || "";
+    }
+
+    // 2. Preencher modelos
+    const modelSelect = document.getElementById("setting-model");
+    if (modelSelect) {
+        let opts = "";
+        (pdata.models || []).forEach(m => {
+            const isSel = (m.id === currentModel) ? "selected" : "";
+            opts += `<option value="${m.id}" ${isSel}>${m.name} [${m.badge}]</option>`;
+        });
+        opts += `<option value="custom" ${currentModel === 'custom' ? 'selected' : ''}>Outro modelo (digitar manualmente)...</option>`;
+        modelSelect.innerHTML = opts;
+    }
+    onModelChanged();
+
+    // 3. Status da Chave no Banner
+    const statusBanner = document.getElementById("modal-key-status-banner");
+    const isOllama = (provider === "ollama");
+    const keyField = pdata.key_field;
+    const hasKey = isOllama || (maskedKeys[provider] && maskedKeys[provider].length > 0);
+
+    if (statusBanner) {
+        if (isOllama) {
+            statusBanner.style.background = "rgba(59, 130, 246, 0.15)";
+            statusBanner.style.border = "1px solid rgba(59, 130, 246, 0.35)";
+            statusBanner.style.color = "#93C5FD";
+            statusBanner.innerHTML = `<span>💻 <strong>Modo Local:</strong> O Ollama roda no seu PC e não requer chave de API.</span>`;
+        } else if (hasKey) {
+            statusBanner.style.background = "rgba(34, 197, 94, 0.15)";
+            statusBanner.style.border = "1px solid rgba(34, 197, 94, 0.35)";
+            statusBanner.style.color = "#86EFAC";
+            statusBanner.innerHTML = `
+                <span>✅ <strong>Chave Ativa:</strong> ${escapeHtml(maskedKeys[provider])}</span>
+                <span style="font-size: 11px; opacity: 0.8;">Pronto para uso</span>
+            `;
+        } else {
+            statusBanner.style.background = "rgba(234, 179, 8, 0.15)";
+            statusBanner.style.border = "1px solid rgba(234, 179, 8, 0.4)";
+            statusBanner.style.color = "#FDE047";
+            statusBanner.innerHTML = `
+                <span>⚠️ <strong>Chave Ausente:</strong> Você precisa inserir sua chave abaixo.</span>
+                <a href="${pdata.key_url || '#'}" target="_blank" rel="noopener" style="color: #38BDF8; font-weight: 700; text-decoration: underline;">
+                    Pegar Grátis &nearr;
+                </a>
+            `;
+        }
+    }
+
+    // 4. Mostrar/Esconder seções
+    const secApiKey = document.getElementById("section-api-key");
+    const secOllama = document.getElementById("section-ollama");
+
+    if (isOllama) {
+        if (secApiKey) secApiKey.style.display = "none";
+        if (secOllama) secOllama.style.display = "block";
+    } else {
+        if (secApiKey) secApiKey.style.display = "block";
+        if (secOllama) secOllama.style.display = "none";
+
+        const labelKey = document.getElementById("label-api-key");
+        if (labelKey) labelKey.innerText = pdata.key_name || "Chave de API";
+
+        const linkKey = document.getElementById("link-get-api-key");
+        if (linkKey) {
+            linkKey.href = pdata.key_url || "#";
+            linkKey.innerText = (provider === "groq" || provider === "gemini" || provider === "openrouter") 
+                ? "⚡ Obter chave grátis ↗" 
+                : "🔑 Obter chave ↗";
+        }
+
+        const inputKey = document.getElementById("setting-api-key");
+        if (inputKey) {
+            inputKey.placeholder = pdata.key_placeholder || "Cole sua chave aqui...";
+            inputKey.value = maskedKeys[provider] || "";
+        }
+
+        const helpBox = document.getElementById("api-key-help-box");
+        if (helpBox) {
+            helpBox.innerText = pdata.key_help || "";
+        }
+    }
 }
 
-document.getElementById("setting-model").addEventListener("change", function() {
-    document.getElementById("group-custom-model").style.display = (this.value === "custom") ? "block" : "none";
-});
+function onModelChanged() {
+    const modelSelect = document.getElementById("setting-model");
+    const customGroup = document.getElementById("group-custom-model");
+    if (!modelSelect || !customGroup) return;
+    customGroup.style.display = (modelSelect.value === "custom") ? "block" : "none";
+}
 
 async function handleSaveAISettings(e) {
     e.preventDefault();
     const provider = document.getElementById("setting-provider").value;
+    const pdata = providersData[provider] || providersData["groq"];
+    
     let model = document.getElementById("setting-model").value;
     if (model === "custom") {
         model = document.getElementById("setting-custom-model").value.trim();
+        if (!model) {
+            showToast("Digite o identificador do modelo customizado.", "warning");
+            return;
+        }
     }
-    const key = document.getElementById("setting-openrouter-key").value.trim();
-    const ollamaUrl = document.getElementById("setting-ollama-url").value.trim();
+
+    const key = document.getElementById("setting-api-key") ? document.getElementById("setting-api-key").value.trim() : "";
+    const ollamaUrl = document.getElementById("setting-ollama-url") ? document.getElementById("setting-ollama-url").value.trim() : "";
+
+    const payload = {
+        ai_provider: provider,
+        ai_model: model,
+        api_key: key,
+        ollama_base_url: ollamaUrl
+    };
+
+    if (pdata.key_field && key) {
+        payload[pdata.key_field] = key;
+    }
 
     try {
         const res = await fetch("/api/ai/config", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                ai_provider: provider,
-                ai_model: model,
-                openrouter_api_key: key,
-                ollama_base_url: ollamaUrl
-            })
+            body: JSON.stringify(payload)
         });
         const data = await res.json();
         if (data.success) {
-            showToast("Configurações de IA salvas!");
+            showToast("Configurações de IA salvas com sucesso!");
             closeModal("modal-ai-settings");
-            document.getElementById("current-model-badge").innerText = model.split("/").pop();
+
+            currentProvider = provider;
+            currentModel = model;
+            hasActiveKey = Boolean(data.has_active_key);
+            if (data.masked_keys) {
+                maskedKeys = data.masked_keys;
+            }
+
+            // Atualizar Tag do Provedor no Cabeçalho
+            const tagEl = document.getElementById("current-provider-tag");
+            if (tagEl) {
+                const prefixMap = {
+                    "groq": "⚡ Groq",
+                    "openrouter": "🎁 OpenRouter",
+                    "gemini": "✨ Gemini",
+                    "deepseek": "🧠 DeepSeek",
+                    "xai": "🪐 Grok",
+                    "ollama": "💻 Ollama"
+                };
+                tagEl.innerText = prefixMap[provider] || provider;
+            }
+
+            // Atualizar Nome do Modelo no Cabeçalho
+            const badgeEl = document.getElementById("current-model-badge");
+            if (badgeEl) {
+                badgeEl.innerText = model.split("/").pop();
+            }
+
+            // Esconder ou Mostrar Alerta de Chave Ausente
+            const alertBanner = document.getElementById("ai-onboarding-key-alert");
+            if (alertBanner) {
+                alertBanner.style.display = hasActiveKey ? "none" : "block";
+            }
+            const headerBadge = document.getElementById("header-missing-key-badge");
+            if (headerBadge) {
+                headerBadge.style.display = hasActiveKey ? "none" : "inline-flex";
+            }
+
         } else {
             showToast(data.message || "Erro ao salvar", "danger");
         }

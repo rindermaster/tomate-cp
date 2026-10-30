@@ -37,7 +37,8 @@ from app.sites import (
     extract_zip_to_site, reload_nginx, test_nginx_syntax
 )
 from app.ai_agent import (
-    POPULAR_MODELS, mask_api_key, get_site_root, scan_site_files,
+    PROVIDERS_CONFIG, POPULAR_MODELS, has_configured_key, get_masked_keys,
+    mask_api_key, get_site_root, scan_site_files,
     read_text_safe, write_text_safe, backup_file, rollback_file,
     generate_diff, call_llm, extract_file_proposals, process_ai_proposals
 )
@@ -782,20 +783,24 @@ async def ai_agent_page(request: Request, site: Optional[str] = None):
     all_sites = list_sites(config)
     selected_site = site or (all_sites[0]["domain"] if all_sites else "")
     cfg = load_config()
-    current_model = cfg.get("ai_model", "cohere/north-mini-code:free")
-    raw_key = cfg.get("openrouter_api_key", "")
-    masked = mask_api_key(raw_key) if raw_key else ""
-    current_provider = cfg.get("ai_provider", "openrouter")
+    current_provider = cfg.get("ai_provider", "groq")
+    if current_provider not in PROVIDERS_CONFIG:
+        current_provider = "groq"
+    prov_meta = PROVIDERS_CONFIG[current_provider]
+    current_model = cfg.get("ai_model") or prov_meta.get("default_model", "llama-3.3-70b-versatile")
+    masked_keys = get_masked_keys(cfg)
+    has_active_key = has_configured_key(cfg, current_provider)
     ollama_url = cfg.get("ollama_base_url", "http://127.0.0.1:11434")
 
     context = get_template_context(request, {
         "page": "ai_agent",
         "sites": all_sites,
         "selected_site": selected_site,
-        "popular_models": POPULAR_MODELS,
-        "current_model": current_model,
-        "masked_key": masked,
+        "providers_config": PROVIDERS_CONFIG,
         "current_provider": current_provider,
+        "current_model": current_model,
+        "masked_keys": masked_keys,
+        "has_active_key": has_active_key,
         "ollama_url": ollama_url,
     })
     return templates.TemplateResponse(request=request, name="ai_agent.html", context=context)
@@ -805,14 +810,19 @@ async def ai_agent_page(request: Request, site: Optional[str] = None):
 async def api_ai_get_config(request: Request):
     require_auth(request, config)
     cfg = load_config()
-    raw_key = cfg.get("openrouter_api_key", "")
+    current_provider = cfg.get("ai_provider", "groq")
+    if current_provider not in PROVIDERS_CONFIG:
+        current_provider = "groq"
+    prov_meta = PROVIDERS_CONFIG[current_provider]
+    current_model = cfg.get("ai_model") or prov_meta.get("default_model", "llama-3.3-70b-versatile")
     return {
         "success": True,
-        "provider": cfg.get("ai_provider", "openrouter"),
-        "model": cfg.get("ai_model", "cohere/north-mini-code:free"),
-        "masked_key": mask_api_key(raw_key) if raw_key else "",
+        "provider": current_provider,
+        "model": current_model,
+        "providers_config": PROVIDERS_CONFIG,
+        "masked_keys": get_masked_keys(cfg),
+        "has_active_key": has_configured_key(cfg, current_provider),
         "ollama_base_url": cfg.get("ollama_base_url", "http://127.0.0.1:11434"),
-        "popular_models": POPULAR_MODELS,
     }
 
 
@@ -825,22 +835,44 @@ async def api_ai_save_config(request: Request):
         return JSONResponse(status_code=400, content={"success": False, "message": "JSON inválido."})
 
     cfg = load_config()
-    if "ai_provider" in data:
-        cfg["ai_provider"] = data["ai_provider"]
+    new_provider = data.get("ai_provider")
+    if new_provider and new_provider in PROVIDERS_CONFIG:
+        cfg["ai_provider"] = new_provider
     if "ai_model" in data and data["ai_model"]:
         cfg["ai_model"] = data["ai_model"].strip()
     if "ollama_base_url" in data and data["ollama_base_url"]:
         cfg["ollama_base_url"] = data["ollama_base_url"].strip()
 
-    new_key = data.get("openrouter_api_key", "").strip()
-    if new_key and not new_key.startswith("sk-or-...") and not new_key.startswith("****"):
-        cfg["openrouter_api_key"] = new_key
+    # Save keys for providers if provided and not masked
+    for p_id, p_info in PROVIDERS_CONFIG.items():
+        k_field = p_info.get("key_field")
+        if not k_field:
+            continue
+        val = (data.get(k_field) or "").strip()
+        if val and not val.startswith("...") and not val.endswith("...") and "****" not in val and len(val) > 5:
+            cfg[k_field] = val
+
+    # Generic api_key or openrouter_api_key fallback
+    generic_key = (data.get("api_key") or data.get("openrouter_api_key") or "").strip()
+    if generic_key and not generic_key.startswith("...") and not generic_key.endswith("...") and "****" not in generic_key and len(generic_key) > 5:
+        target_p = cfg.get("ai_provider", "groq")
+        kf = PROVIDERS_CONFIG.get(target_p, {}).get("key_field", f"{target_p}_api_key")
+        if kf:
+            cfg[kf] = generic_key
+        if target_p == "openrouter":
+            cfg["openrouter_api_key"] = generic_key
 
     save_config(cfg)
     config.clear()
     config.update(cfg)
 
-    return {"success": True, "message": "Configurações de IA salvas com sucesso!"}
+    active_p = cfg.get("ai_provider", "groq")
+    return {
+        "success": True, 
+        "message": "Configurações de IA salvas com sucesso!",
+        "has_active_key": has_configured_key(cfg, active_p),
+        "masked_keys": get_masked_keys(cfg)
+    }
 
 
 @app.post("/api/ai/chat")
