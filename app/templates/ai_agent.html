@@ -223,36 +223,98 @@
   color: #F8FAFC;
 }
 
-/* Compact Proposal Summary in Chat */
+/* Compact Single-Line Proposal Summary in Chat */
 .ai-change-summary {
   margin-top: 8px;
-  background: #0B1120;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 8px 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
-.ai-change-header-row {
+.ai-change-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.2;
+  transition: all 0.2s ease;
 }
-.ai-change-filename {
+.ai-change-row.pending {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.ai-change-row.applied {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+}
+.ai-change-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-change-name {
   font-family: var(--font-mono);
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 600;
+  color: #F1F5F9;
+}
+.ai-applied-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #16A34A;
+  color: #FFFFFF;
+  font-size: 9.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.ai-applied-tag {
   color: #86EFAC;
-  display: flex;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+.ai-change-count {
+  color: #64748B;
+  font-size: 10px;
+}
+.ai-change-pill {
+  font-size: 9.5px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.ai-change-pill.patch {
+  background: rgba(14, 165, 233, 0.15);
+  color: #38BDF8;
+}
+.ai-change-pill.full {
+  background: rgba(168, 85, 247, 0.15);
+  color: #C084FC;
+}
+.ai-change-btns {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  flex-shrink: 0;
 }
-.ai-change-actions-row {
-  display: flex;
-  gap: 4px;
+.ai-btn-code-min {
+  font-size: 9.5px !important;
+  padding: 1px 6px !important;
+  color: #94A3B8 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: transparent !important;
+}
+.ai-btn-code-min:hover {
+  color: #F8FAFC !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Chat Footer (Input) */
@@ -804,19 +866,11 @@
                 </div>
             </div>
 
-            <!-- Assistant Welcome Message (Compact) -->
-            <div class="ai-msg assistant">
-                <div class="ai-msg-avatar">🍅</div>
-                <div class="ai-bubble">
-                    <p style="margin-bottom: 6px; font-weight: 700; color: #FFFFFF;">
-                        Olá! Eu sou o <strong>Agente Tomate IA</strong>.
-                    </p>
-                    <p style="color: #CBD5E1; margin-bottom: 6px;">
-                        Peça alterações, novos componentes ou páginas completas para o seu site.
-                    </p>
-                    <p style="font-size: 11.5px; color: #38BDF8;">
-                        💡 O preview ao lado atualiza em tempo real conforme programamos.
-                    </p>
+            <!-- Assistant Welcome Message (Ultra-Compact) -->
+            <div class="ai-msg assistant" id="initial-welcome-msg">
+                <div class="ai-msg-avatar" style="width: 26px; height: 26px; font-size: 13px;">🍅</div>
+                <div class="ai-bubble" style="padding: 7px 12px; font-size: 12px; line-height: 1.4; color: #94A3B8; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                    <strong style="color: #F8FAFC;">Tomate IA pronto.</strong> Peça alterações ou componentes para seu site.
                 </div>
             </div>
         </div>
@@ -1499,6 +1553,71 @@ function handleTextareaKeydown(e) {
     }
 }
 
+
+window.changesStore = window.changesStore || {};
+
+function renderPendingChangeRow(msgId, idx, ch) {
+    return `
+        <div class="ai-change-row pending" id="${msgId}-row-${idx}" data-msg-id="${msgId}" data-idx="${idx}">
+            <div class="ai-change-info">
+                <span>📄</span>
+                <span class="ai-change-name">${escapeHtml(ch.path)}</span>
+                <span class="ai-change-pill ${ch.edit_mode === 'patch' ? 'patch' : 'full'}">
+                    ${ch.edit_mode === 'patch' ? (ch.matched_blocks > 0 ? ch.matched_blocks + ' alt.' : 'Edição') : 'Novo'}
+                </span>
+                ${ch.failed_blocks > 0 ? `<span class="badge" style="background: rgba(239,68,68,0.2); color: #ef4444; font-size: 9px; padding: 1px 4px;">⚠️ ${ch.failed_blocks} falha</span>` : ''}
+            </div>
+            <div class="ai-change-btns">
+                <button type="button" class="btn btn-outline btn-sm ai-btn-code-min" onclick="previewDiffFile('${msgId}', ${idx})">
+                    💻 Código
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D; font-size: 9.5px; padding: 1px 7px; font-weight: 600;" onclick="acceptSingleChange('${msgId}', ${idx})">
+                    ✅ Aplicar
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function renderAppliedChangeRow(msgId, idx, ch) {
+    return `
+        <div class="ai-change-row applied" id="${msgId}-row-${idx}" data-msg-id="${msgId}" data-idx="${idx}">
+            <div class="ai-change-info">
+                <span class="ai-applied-check">✓</span>
+                <span class="ai-change-name">${escapeHtml(ch.path)}</span>
+                <span class="ai-applied-tag">salvo no site</span>
+                ${ch.matched_blocks ? `<span class="ai-change-count">(${ch.matched_blocks} edições)</span>` : ''}
+            </div>
+            <div class="ai-change-btns">
+                <button type="button" class="btn btn-outline btn-sm ai-btn-code-min" onclick="previewDiffFile('${msgId}', ${idx})" title="Ver o diff deste arquivo no painel de Código">
+                    💻 Código
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function previewDiffFile(msgId, idx) {
+    const changes = window.changesStore && window.changesStore[msgId];
+    if (!changes || !changes[idx]) return;
+    const item = changes[idx];
+    currentActiveFile = item.path;
+    const picker = document.getElementById("code-file-picker");
+    if (picker) {
+        let exists = false;
+        for (let opt of picker.options) {
+            if (opt.value === item.path) { exists = true; break; }
+        }
+        if (!exists) {
+            picker.innerHTML += `<option value="${escapeHtml(item.path)}">${escapeHtml(item.path)}</option>`;
+        }
+        picker.value = item.path;
+    }
+    renderDiff(item.diff);
+    switchStudioTab("code");
+    setCodeMode("diff");
+}
+
 async function handleSendMessage(e) {
     e.preventDefault();
     const input = document.getElementById("ai-prompt-input");
@@ -1572,6 +1691,12 @@ async function handleSendMessage(e) {
             botMsgEl.className = "ai-msg assistant";
 
             let changesHtml = "";
+            const msgId = "msg-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+            window.changesStore[msgId] = data.changes || [];
+
+            const hasValidWork = data.changes && data.changes.some(ch => (ch.matched_blocks > 0 || ch.edit_mode === "file") && !ch.has_lazy_placeholder);
+            const willAutoApply = isAutoApply && hasValidWork;
+
             if (data.changes && data.changes.length > 0) {
                 pendingChanges = data.changes;
 
@@ -1586,39 +1711,13 @@ async function handleSendMessage(e) {
 
                 changesHtml += `<div class="ai-change-summary">`;
                 data.changes.forEach((ch, idx) => {
-                    changesHtml += `
-                        <div class="ai-change-header-row" id="chat-change-row-${idx}">
-                            <span class="ai-change-filename">
-                                📄 ${escapeHtml(ch.path)}
-                                ${ch.edit_mode === "patch" ? `<span class="badge" style="background: rgba(14,165,233,0.15); color: #38bdf8; font-size: 9.5px; margin-left: 6px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Edição Pontual</span>` : `<span class="badge" style="background: rgba(168,85,247,0.15); color: #c084fc; font-size: 9.5px; margin-left: 6px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Arquivo Completo</span>`}
-                                ${ch.matched_blocks > 0 ? `<span class="badge" style="background: rgba(34,197,94,0.15); color: #4ade80; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">✓ ${ch.matched_blocks} alteração(ões)</span>` : ""}
-                                ${ch.failed_blocks > 0 ? `<span class="badge" style="background: rgba(239,68,68,0.2); color: #ef4444; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">⚠️ ${ch.failed_blocks} não localizados</span>` : ""}
-                                ${ch.has_lazy_placeholder ? `<span class="badge" style="background: rgba(239,68,68,0.2); color: #ef4444; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">⚠️ Verifique</span>` : ""}
-                            </span>
-                            <div class="ai-change-actions-row">
-                                <button type="button" class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 6px;" onclick="viewChangeInPreview(${idx})">
-                                    👁️ Preview
-                                </button>
-                                <button type="button" class="btn btn-outline btn-sm" style="font-size: 10px; padding: 2px 6px;" onclick="viewChangeInCode(${idx})">
-                                    💻 Código
-                                </button>
-                                <button type="button" class="btn btn-primary btn-sm" style="background: #16A34A; border-color: #15803D; font-size: 10px; padding: 2px 6px;" onclick="applySingleChange(${idx})">
-                                    ✅ Aplicar
-                                </button>
-                            </div>
-                        </div>
-                    `;
+                    if (willAutoApply) {
+                        changesHtml += renderAppliedChangeRow(msgId, idx, ch);
+                    } else {
+                        changesHtml += renderPendingChangeRow(msgId, idx, ch);
+                    }
                 });
                 changesHtml += `</div>`;
-
-                refreshPreview();
-                switchStudioTab("preview");
-
-                // Auto-apply logic
-                const hasValidWork = data.changes.some(ch => (ch.matched_blocks > 0 || ch.edit_mode === "file") && !ch.has_lazy_placeholder);
-                if (isAutoApply && hasValidWork) {
-                    await applyPendingChanges(true);
-                }
             }
 
             botMsgEl.innerHTML = `
@@ -1629,6 +1728,15 @@ async function handleSendMessage(e) {
                 </div>
             `;
             thread.appendChild(botMsgEl);
+
+            if (data.changes && data.changes.length > 0) {
+                refreshPreview();
+                switchStudioTab("preview");
+
+                if (willAutoApply) {
+                    await applyPendingChanges(true, msgId);
+                }
+            }
 
         } else {
             appendAssistantMessage(`⚠️ Erro: ${escapeHtml(data.message || 'Erro desconhecido')}`);
@@ -1687,7 +1795,7 @@ function viewChangeInCode(idx) {
 /* ==========================================================================
    APPLY & ROLLBACK ACTIONS
    ========================================================================== */
-async function applyPendingChanges(isAuto = false) {
+async function applyPendingChanges(isAuto = false, targetMsgId = null) {
     if (!pendingChanges.length) {
         if (!isAuto) showToast("Nenhuma alteração pendente para aplicar.");
         return;
@@ -1703,14 +1811,18 @@ async function applyPendingChanges(isAuto = false) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast(isAuto ? "⚡ Alterações salvas e aplicadas diretamente no site!" : "Todas as alterações foram aplicadas no servidor!");
-            pendingChanges.forEach((ch, idx) => {
-                recordHistoryPill(ch.path);
-                const row = document.getElementById(`chat-change-row-${idx}`);
-                if (row) {
-                    row.innerHTML = `<span style="font-family: var(--font-mono); font-size: 11px; color: #86EFAC;">✅ '${escapeHtml(ch.path)}' salvo e aplicado no site!</span>`;
+            showToast(isAuto ? "⚡ Alterações salvas e aplicadas no site!" : "Todas as alterações foram aplicadas no site!");
+            
+            // Minimize all pending change rows across messages to single-line applied state
+            document.querySelectorAll(".ai-change-row.pending").forEach(el => {
+                const elMsgId = el.getAttribute("data-msg-id");
+                const elIdx = parseInt(el.getAttribute("data-idx"), 10);
+                if (elMsgId && !isNaN(elIdx) && window.changesStore[elMsgId] && window.changesStore[elMsgId][elIdx]) {
+                    el.outerHTML = renderAppliedChangeRow(elMsgId, elIdx, window.changesStore[elMsgId][elIdx]);
                 }
             });
+
+            pendingChanges.forEach(ch => recordHistoryPill(ch.path));
             pendingChanges = [];
             document.getElementById("preview-unapplied-banner").style.display = "none";
             refreshPreview();
@@ -1723,9 +1835,10 @@ async function applyPendingChanges(isAuto = false) {
     }
 }
 
-async function applySingleChange(idx) {
-    const item = pendingChanges[idx];
-    if (!item) return;
+async function acceptSingleChange(msgId, idx) {
+    const changes = window.changesStore && window.changesStore[msgId];
+    if (!changes || !changes[idx]) return;
+    const item = changes[idx];
 
     try {
         const res = await fetch("/api/ai/apply", {
@@ -1738,13 +1851,19 @@ async function applySingleChange(idx) {
         });
         const data = await res.json();
         if (data.success) {
-            showToast(`Arquivo '${item.path}' salvo!`);
+            showToast(`Arquivo '${item.path}' salvo no site!`);
             recordHistoryPill(item.path);
-            const row = document.getElementById(`chat-change-row-${idx}`);
+            
+            // Minimize this row to single-line applied state
+            const row = document.getElementById(`${msgId}-row-${idx}`);
             if (row) {
-                row.innerHTML = `<span style="font-family: var(--font-mono); font-size: 11px; color: #86EFAC;">✅ '${escapeHtml(item.path)}' salvo!</span>`;
+                row.outerHTML = renderAppliedChangeRow(msgId, idx, item);
             }
-            pendingChanges.splice(idx, 1);
+
+            // Remove from pendingChanges array
+            const pIdx = pendingChanges.findIndex(c => c.path === item.path);
+            if (pIdx !== -1) pendingChanges.splice(pIdx, 1);
+
             if (!pendingChanges.length) {
                 document.getElementById("preview-unapplied-banner").style.display = "none";
             }
@@ -1780,15 +1899,18 @@ async function rollbackFile(path) {
 
 function clearChat() {
     chatHistory = [];
+    pendingChanges = [];
     const thread = document.getElementById("ai-chat-thread");
     thread.innerHTML = `
         <div class="ai-msg assistant">
-            <div class="ai-msg-avatar">🍅</div>
-            <div class="ai-bubble">
-                <p>Conversa reiniciada. O que gostaria de criar ou modificar no site <strong>${escapeHtml(activeSite)}</strong>?</p>
+            <div class="ai-msg-avatar" style="width: 26px; height: 26px; font-size: 13px;">🍅</div>
+            <div class="ai-bubble" style="padding: 7px 12px; font-size: 12px; line-height: 1.4; color: #94A3B8; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <strong style="color: #F8FAFC;">Conversa limpa.</strong> O que gostaria de criar ou editar no site?
             </div>
         </div>
     `;
+    document.getElementById("preview-unapplied-banner").style.display = "none";
+    refreshPreview();
 }
 
 function escapeHtml(text) {
