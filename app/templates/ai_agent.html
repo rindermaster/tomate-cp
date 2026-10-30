@@ -852,6 +852,14 @@
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                     </svg>
                 </button>
+                        <div class="ai-input-controls-row" style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding: 0 4px; font-size: 11px; color: var(--text-muted);">
+                <label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+                    <input type="checkbox" id="ai-auto-apply-checkbox" onchange="toggleAutoApply(this.checked)" style="accent-color: #22C55E; cursor: pointer;">
+                    <span style="color: #E2E8F0; font-weight: 500;">⚡ Auto-aplicar no site</span>
+                    <span style="color: #64748B; font-size: 10px;">(salva alterações imediatamente)</span>
+                </label>
+                <span style="color: #64748B; font-size: 10px;">Enter para enviar &bull; Shift+Enter nova linha</span>
+            </div>
             </form>
         </div>
     </div>
@@ -1113,6 +1121,13 @@
    ========================================================================== */
 let chatHistory = [];
 let pendingChanges = [];
+let isAutoApply = localStorage.getItem("tomate_ai_auto_apply") !== "false";
+
+function toggleAutoApply(val) {
+    isAutoApply = !!val;
+    localStorage.setItem("tomate_ai_auto_apply", isAutoApply ? "true" : "false");
+    showToast(isAutoApply ? "⚡ Auto-aplicar ativado (alterações serão salvas direto no site)." : "Modo Revisão ativado (alterações precisarão ser aprovadas antes de salvar).");
+}
 let activeSite = "{{ selected_site }}";
 let activeStudioTab = "preview";
 let currentDeviceMode = "desktop";
@@ -1133,6 +1148,8 @@ let hasActiveKey = {{ 'true' if has_active_key else 'false' }};
 document.addEventListener("DOMContentLoaded", () => {
     updateExternalSiteLink();
     loadSiteFiles();
+    const autoCheck = document.getElementById("ai-auto-apply-checkbox");
+    if (autoCheck) autoCheck.checked = isAutoApply;
     refreshPreview();
     onProviderChanged();
 });
@@ -1242,7 +1259,16 @@ function refreshPreview() {
     // Check if there is an unapplied HTML change
     const pendingHtml = pendingChanges.find(c => c.path.endsWith(".html") || c.path.endsWith(".htm"));
     if (pendingHtml) {
-        frame.srcdoc = pendingHtml.content;
+        let previewHtml = pendingHtml.content;
+        const baseTag = `<base href="/api/ai/preview?site=${encodeURIComponent(activeSite)}&file=">`;
+        if (previewHtml.includes("<head>")) {
+            previewHtml = previewHtml.replace("<head>", `<head>\n  ${baseTag}`);
+        } else if (previewHtml.includes("<HEAD>")) {
+            previewHtml = previewHtml.replace("<HEAD>", `<HEAD>\n  ${baseTag}`);
+        } else {
+            previewHtml = baseTag + "\n" + previewHtml;
+        }
+        frame.srcdoc = previewHtml;
         document.getElementById("preview-unapplied-banner").style.display = "flex";
     } else {
         document.getElementById("preview-unapplied-banner").style.display = "none";
@@ -1564,6 +1590,8 @@ async function handleSendMessage(e) {
                             <span class="ai-change-filename">
                                 📄 ${escapeHtml(ch.path)}
                                 ${ch.edit_mode === "patch" ? `<span class="badge" style="background: rgba(14,165,233,0.15); color: #38bdf8; font-size: 9.5px; margin-left: 6px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Edição Pontual</span>` : `<span class="badge" style="background: rgba(168,85,247,0.15); color: #c084fc; font-size: 9.5px; margin-left: 6px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">Arquivo Completo</span>`}
+                                ${ch.matched_blocks > 0 ? `<span class="badge" style="background: rgba(34,197,94,0.15); color: #4ade80; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">✓ ${ch.matched_blocks} alteração(ões)</span>` : ""}
+                                ${ch.failed_blocks > 0 ? `<span class="badge" style="background: rgba(239,68,68,0.2); color: #ef4444; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">⚠️ ${ch.failed_blocks} não localizados</span>` : ""}
                                 ${ch.has_lazy_placeholder ? `<span class="badge" style="background: rgba(239,68,68,0.2); color: #ef4444; font-size: 9.5px; margin-left: 4px; padding: 2px 5px; border-radius: 4px; font-weight: 600;">⚠️ Verifique</span>` : ""}
                             </span>
                             <div class="ai-change-actions-row">
@@ -1584,6 +1612,12 @@ async function handleSendMessage(e) {
 
                 refreshPreview();
                 switchStudioTab("preview");
+
+                // Auto-apply logic
+                const hasValidWork = data.changes.some(ch => (ch.matched_blocks > 0 || ch.edit_mode === "file") && !ch.has_lazy_placeholder);
+                if (isAutoApply && hasValidWork) {
+                    await applyPendingChanges(true);
+                }
             }
 
             botMsgEl.innerHTML = `
@@ -1652,9 +1686,9 @@ function viewChangeInCode(idx) {
 /* ==========================================================================
    APPLY & ROLLBACK ACTIONS
    ========================================================================== */
-async function applyPendingChanges() {
+async function applyPendingChanges(isAuto = false) {
     if (!pendingChanges.length) {
-        showToast("Nenhuma alteração pendente para aplicar.");
+        if (!isAuto) showToast("Nenhuma alteração pendente para aplicar.");
         return;
     }
     try {
@@ -1668,8 +1702,14 @@ async function applyPendingChanges() {
         });
         const data = await res.json();
         if (data.success) {
-            showToast("Todas as alterações foram aplicadas no servidor!");
-            pendingChanges.forEach(ch => recordHistoryPill(ch.path));
+            showToast(isAuto ? "⚡ Alterações salvas e aplicadas diretamente no site!" : "Todas as alterações foram aplicadas no servidor!");
+            pendingChanges.forEach((ch, idx) => {
+                recordHistoryPill(ch.path);
+                const row = document.getElementById(`chat-change-row-${idx}`);
+                if (row) {
+                    row.innerHTML = `<span style="font-family: var(--font-mono); font-size: 11px; color: #86EFAC;">✅ '${escapeHtml(ch.path)}' salvo e aplicado no site!</span>`;
+                }
+            });
             pendingChanges = [];
             document.getElementById("preview-unapplied-banner").style.display = "none";
             refreshPreview();

@@ -593,11 +593,12 @@ LAZY_PLACEHOLDER_REGEX = re.compile(
 
 def apply_search_replace(original_text: str, search: str, replace: str) -> tuple[str, bool]:
     """
-    Aplica substituição cirúrgica com 4 níveis de tolerância:
+    Aplica substituição cirúrgica com múltiplos níveis de tolerância:
     1. Match exato
     2. Normalização CRLF/LF
-    3. Tolerância a espaços no fim de linha (rstrip)
-    4. Tolerância a indentação (strip)
+    3. Tolerância a quebras de linha nas bordas do bloco (strip)
+    4. Tolerância a espaços no fim de linha (rstrip)
+    5. Tolerância a indentação geral (strip por linha)
     """
     if not search:
         return original_text, False
@@ -613,7 +614,12 @@ def apply_search_replace(original_text: str, search: str, replace: str) -> tuple
     if norm_search in norm_orig:
         return norm_orig.replace(norm_search, norm_replace, 1), True
 
-    # 3. Tolerância a espaços em branco no final de linhas
+    # 3. Tolerância a quebras de linha / espaços extras no topo ou base do search
+    trimmed_search = norm_search.strip("\r\n")
+    if trimmed_search and trimmed_search in norm_orig:
+        return norm_orig.replace(trimmed_search, norm_replace.strip("\r\n"), 1), True
+
+    # 4. Tolerância a espaços em branco no final de linhas
     search_lines = [l.rstrip() for l in norm_search.split("\n")]
     orig_lines = [l.rstrip() for l in norm_orig.split("\n")]
     actual_orig_lines = norm_orig.split("\n")
@@ -627,7 +633,7 @@ def apply_search_replace(original_text: str, search: str, replace: str) -> tuple
                 res = "\n".join(before + [norm_replace] + after)
                 return res, True
 
-    # 4. Tolerância a indentação geral
+    # 5. Tolerância a indentação geral
     stripped_search = [l.strip() for l in search_lines if l.strip()]
     if stripped_search:
         n_strip = len(stripped_search)
@@ -641,6 +647,7 @@ def apply_search_replace(original_text: str, search: str, replace: str) -> tuple
 
     return original_text, False
 
+
 def process_ai_proposals(reply: str, root: Path) -> List[Dict[str, Any]]:
     """
     Extrai e processa tanto edições pontuais (SEARCH/REPLACE) quanto criação/substituição total (FILE:).
@@ -648,13 +655,13 @@ def process_ai_proposals(reply: str, root: Path) -> List[Dict[str, Any]]:
     """
     changes_by_file: Dict[str, Dict[str, Any]] = {}
 
-    # 1. Procurar blocos SEARCH/UPDATE/PATCH
+    # 1. Procurar blocos SEARCH/UPDATE/PATCH:
     block_pattern = re.compile(
         r"[\\`#*\s]*(?:SEARCH|UPDATE|PATCH):\s*([^\s`\n]+)([\s\S]*?)(?=(?:```[a-zA-Z0-9_-]*\r?\n[\\`#*\s]*(?:SEARCH|UPDATE|PATCH|FILE):|[\\`#*\s]*(?:SEARCH|UPDATE|PATCH|FILE):|\Z))",
         re.IGNORECASE
     )
     pair_pattern = re.compile(
-        r"(?:<{5,}\s*SEARCH\r?\n)?([\s\S]*?)\r?\n={5,}\r?\n([\s\S]*?)(?=\r?\n>{5,}\s*REPLACE|\r?\n```|\Z)",
+        r"[ \t]*<{3,}\s*SEARCH[^\n]*\r?\n([\s\S]*?)\r?\n[ \t]*={3,}\r?\n([\s\S]*?)(?=\r?\n[ \t]*>{3,}\s*REPLACE|\r?\n```|\Z)",
         re.IGNORECASE
     )
 
@@ -669,8 +676,9 @@ def process_ai_proposals(reply: str, root: Path) -> List[Dict[str, Any]]:
         for p in pairs:
             s_text = p.group(1)
             r_text = p.group(2)
-            # Remove any trailing fence if captured
-            r_text = re.sub(r"\n```\s*$", "", r_text)
+            # Remove qualquer fechamento residual de replace ou fence
+            r_text = re.sub(r"\r?\n[ \t]*>{3,}\s*REPLACE[^\n]*$", "", r_text, flags=re.IGNORECASE)
+            r_text = re.sub(r"\r?\n```\s*$", "", r_text)
             if s_text.strip() and r_text.strip():
                 changes_by_file[path]["pairs"].append({
                     "search": s_text,
@@ -679,7 +687,7 @@ def process_ai_proposals(reply: str, root: Path) -> List[Dict[str, Any]]:
 
     # Fallback para <<<<<<< SEARCH arquivo.ext
     generic_sr = re.compile(
-        r"<{5,}\s*SEARCH\s+([^\s\n]+)\r?\n([\s\S]*?)\r?\n={5,}\r?\n([\s\S]*?)\r?\n>{5,}\s*REPLACE",
+        r"[ \t]*<{3,}\s*SEARCH\s+([^\s\n]+)\r?\n([\s\S]*?)\r?\n[ \t]*={3,}\r?\n([\s\S]*?)(?=\r?\n[ \t]*>{3,}\s*REPLACE|\r?\n```|\Z)",
         re.IGNORECASE
     )
     for m in generic_sr.finditer(reply):
@@ -688,12 +696,28 @@ def process_ai_proposals(reply: str, root: Path) -> List[Dict[str, Any]]:
             changes_by_file[path] = {"type": "patch", "pairs": []}
         changes_by_file[path]["pairs"].append({
             "search": m.group(2),
-            "replace": m.group(3)
+            "replace": re.sub(r"\r?\n[ \t]*>{3,}\s*REPLACE[^\n]*$", "", m.group(3), flags=re.IGNORECASE)
         })
+
+    # Fallback para SEARCH/REPLACE sem nome de arquivo explícito
+    if not changes_by_file:
+        unnamed_sr = re.compile(
+            r"[ \t]*<{3,}\s*SEARCH\s*\r?\n([\s\S]*?)\r?\n[ \t]*={3,}\r?\n([\s\S]*?)(?=\r?\n[ \t]*>{3,}\s*REPLACE|\r?\n```|\Z)",
+            re.IGNORECASE
+        )
+        unnamed_pairs = list(unnamed_sr.finditer(reply))
+        if unnamed_pairs:
+            default_path = "index.html"
+            changes_by_file[default_path] = {"type": "patch", "pairs": []}
+            for p in unnamed_pairs:
+                changes_by_file[default_path]["pairs"].append({
+                    "search": p.group(1),
+                    "replace": re.sub(r"\r?\n[ \t]*>{3,}\s*REPLACE[^\n]*$", "", p.group(2), flags=re.IGNORECASE)
+                })
 
     # 2. Procurar blocos FILE: (para novos arquivos ou regravação completa)
     file_pattern = re.compile(
-        r"[\\`#*\s]*(?:CREATE\s+)?FILE:\s*([^\s`\n]+)\r?\n([\s\S]*?)(?=\r?\n[\\`#*\s]*(?:FILE:|SEARCH:|UPDATE:|PATCH:|$)|```|\Z)",
+        r"(?:```[a-zA-Z0-9_-]*\s*)?[\\`#*\s]*(?:CREATE\s+)?FILE:\s*([^\s`\n]+)\r?\n([\s\S]*?)(?=\r?\n[\\`#*\s]*(?:FILE:|SEARCH:|UPDATE:|PATCH:|$)|```|\Z)",
         re.IGNORECASE
     )
     for m in file_pattern.finditer(reply):
